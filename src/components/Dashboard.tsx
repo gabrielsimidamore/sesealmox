@@ -8,19 +8,29 @@ export default function Dashboard() {
   const [totalItens, setTotalItens] = useState(0)
   const [totalLocais, setTotalLocais] = useState(0)
   const [locaisVazios, setLocaisVazios] = useState(0)
+  const [ocupados, setOcupados] = useState(0)
   const [cats, setCats] = useState<Cat[]>([])
 
   async function carregar() {
     setCarregando(true)
-    const [itensC, locaisC, vazias, categorias] = await Promise.all([
+    const [itensC, locaisC, vinculos, categorias] = await Promise.all([
       supabase.from('itens').select('*', { count: 'exact', head: true }),
       supabase.from('locacoes').select('*', { count: 'exact', head: true }),
-      supabase.from('item_locacoes').select('locacao_id').eq('vazio', true),
+      supabase.from('item_locacoes').select('locacao_id, vazio'),
       supabase.from('itens').select('categoria'),
     ])
     setTotalItens(itensC.count || 0)
     setTotalLocais(locaisC.count || 0)
-    setLocaisVazios(new Set((vazias.data || []).map((v: any) => v.locacao_id)).size)
+
+    // ocupadas/vazias contam só locações que realmente têm item vinculado
+    const ocupSet = new Set<string>()
+    const vazSet = new Set<string>()
+    for (const r of (vinculos.data || []) as any[]) {
+      if (r.vazio) vazSet.add(r.locacao_id)
+      else ocupSet.add(r.locacao_id)
+    }
+    setOcupados(ocupSet.size)
+    setLocaisVazios(vazSet.size)
 
     const cont: Record<string, number> = {}
     for (const r of (categorias.data || []) as any[]) {
@@ -33,7 +43,6 @@ export default function Dashboard() {
   useEffect(() => { carregar() }, [])
 
   const maxCat = Math.max(1, ...cats.map(c => c.total))
-  const ocupados = Math.max(0, totalLocais - locaisVazios)
 
   return (
     <div>
@@ -53,7 +62,7 @@ export default function Dashboard() {
             </div>
             <div className="stat">
               <div className="stat-num">{totalLocais}</div>
-              <div className="stat-rot">Locações</div>
+              <div className="stat-rot">Locações cadastradas</div>
             </div>
             <div className="stat ok">
               <div className="stat-num">{ocupados}</div>
