@@ -13,6 +13,7 @@ export default function Admin() {
   const [salvando, setSalvando] = useState(false)
   const [msg, setMsg] = useState('')
   const [novaLoc, setNovaLoc] = useState({ codigo: '', descricao: '' })
+  const [novoEndereco, setNovoEndereco] = useState('')
 
   async function carregar() {
     const { data: its } = await supabase.from('itens').select('*, locacoes(codigo)').order('created_at', { ascending: false })
@@ -23,7 +24,7 @@ export default function Admin() {
   useEffect(() => { carregar() }, [])
 
   function limpar() {
-    setForm(vazio); setEditId(null); setFoto(null); setFotoAtual(null)
+    setForm(vazio); setEditId(null); setFoto(null); setFotoAtual(null); setNovoEndereco('')
   }
 
   function editar(i: Item) {
@@ -31,7 +32,7 @@ export default function Admin() {
       codigo_m: i.codigo_m, nome: i.nome || '', descricao: i.descricao || '',
       categoria: i.categoria || '', locacao_id: i.locacao_id || ''
     })
-    setEditId(i.id); setFoto(null); setFotoAtual(i.foto_url || null)
+    setEditId(i.id); setFoto(null); setFotoAtual(i.foto_url || null); setNovoEndereco('')
     window.scrollTo({ top: 0, behavior: 'smooth' })
   }
 
@@ -40,6 +41,20 @@ export default function Admin() {
     setSalvando(true); setMsg('')
     let foto_url = fotoAtual
     try {
+      let locacao_id: string | null = form.locacao_id || null
+      if (form.locacao_id === '__novo__') {
+        const cod = novoEndereco.trim()
+        if (!cod) { setMsg('Digite o novo endereço ou escolha um da lista.'); setSalvando(false); return }
+        const existente = locacoes.find(l => l.codigo.toLowerCase() === cod.toLowerCase())
+        if (existente) {
+          locacao_id = existente.id
+        } else {
+          const { data: novaL, error: locErr } = await supabase
+            .from('locacoes').insert({ codigo: cod }).select('id').single()
+          if (locErr) throw locErr
+          locacao_id = novaL!.id
+        }
+      }
       if (foto) {
         const nome = `${Date.now()}_${foto.name.replace(/[^\w.\-]/g, '_')}`
         const { error: upErr } = await supabase.storage.from('fotos').upload(nome, foto, { upsert: true })
@@ -51,7 +66,7 @@ export default function Admin() {
         nome: form.nome || null,
         descricao: form.descricao || null,
         categoria: form.categoria || null,
-        locacao_id: form.locacao_id || null,
+        locacao_id,
         foto_url,
         updated_at: new Date().toISOString(),
       }
@@ -88,9 +103,18 @@ export default function Admin() {
         <textarea placeholder="Descrição" value={form.descricao} onChange={e => setForm({ ...form, descricao: e.target.value })} />
         <input placeholder="Categoria" value={form.categoria} onChange={e => setForm({ ...form, categoria: e.target.value })} />
         <select value={form.locacao_id} onChange={e => setForm({ ...form, locacao_id: e.target.value })}>
-          <option value="">— Locação —</option>
-          {locacoes.map(l => <option key={l.id} value={l.id}>{l.codigo}</option>)}
+          <option value="">— Endereço / Locação —</option>
+          {locacoes.map(l => <option key={l.id} value={l.id}>{l.codigo}{l.descricao ? ` — ${l.descricao}` : ''}</option>)}
+          <option value="__novo__">➕ Novo endereço…</option>
         </select>
+        {form.locacao_id === '__novo__' && (
+          <input
+            placeholder="Digite o novo endereço (ex: Prateleira A - Corredor 3)"
+            value={novoEndereco}
+            onChange={e => setNovoEndereco(e.target.value)}
+            autoFocus
+          />
+        )}
 
         <label className="foto-btn">
           📷 {foto ? foto.name : (fotoAtual ? 'Trocar foto' : 'Tirar / escolher foto')}
