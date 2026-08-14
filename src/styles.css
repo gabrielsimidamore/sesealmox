@@ -278,6 +278,11 @@ button.linha:hover, .linha:hover { transform: translateY(-1px); box-shadow: var(
 .foco-3d { height: 62vh; background: linear-gradient(180deg, var(--hover), var(--card)); border: 1px solid var(--borda); border-radius: 16px; overflow: hidden; }
 .foco-info { display: flex; flex-direction: column; gap: 12px; }
 .gaveta-wrap { pointer-events: none !important; }
+.add-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+.add-grid .secundario { width: 100%; font-size: 13px; padding: 10px 6px; }
+.dims3 { display: flex; gap: 6px; }
+.dims3 label { flex: 1; font-size: 11px; color: var(--muted); display: flex; flex-direction: column; gap: 2px; }
+.dims3 input { margin: 0; padding: 6px; text-align: center; font-size: 13px; }
 .gaveta-label { background: rgba(0,0,0,.6); color: #fff; font-size: 11px; font-weight: 700; padding: 1px 5px; border-radius: 4px; white-space: nowrap; pointer-events: none; }
 @media (max-width: 760px) {
   .foco { grid-template-columns: 1fr; }
