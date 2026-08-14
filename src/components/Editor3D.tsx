@@ -31,7 +31,7 @@ export default function Editor3D() {
   const [objs, setObjs] = useState<Objeto[]>([])
   const [selId, setSelId] = useState<string | null>(null)
   const [modo, setModo] = useState<'editar' | 'andar'>('editar')
-  const [gizmo, setGizmo] = useState<'translate' | 'rotate'>('translate')
+  const [ferramenta, setFerramenta] = useState<'mover' | 'girar' | 'redimensionar'>('mover')
   const [colocando, setColocando] = useState<string | null>(null)
 
   async function carregar() {
@@ -77,15 +77,22 @@ export default function Editor3D() {
     else await editarObj(sel.id, { [campo]: mapUnits } as any)
   }
 
-  async function onChange(id: string, t: { pos_x: number; pos_z: number; rot_y: number }) {
+  function onDragLive(id: string, x: number, z: number) {
+    const px = snap(x), pz = snap(z)
+    setPrats(prev => prev.map(p => p.id === id ? { ...p, pos_x: px, pos_z: pz } : p))
+    setObjs(prev => prev.map(o => o.id === id ? { ...o, pos_x: px, pos_z: pz } : o))
+  }
+  async function onDragEnd(id: string) {
     const n = nodes.find(x => x.id === id); if (!n) return
-    if (n.kind === 'prat') {
-      setPrats(prev => prev.map(p => p.id === id ? { ...p, pos_x: t.pos_x, pos_z: t.pos_z, rotacao: t.rot_y } : p))
-      await supabase.from('prateleiras').update({ pos_x: t.pos_x, pos_z: t.pos_z, rotacao: t.rot_y }).eq('id', id)
-    } else {
-      setObjs(prev => prev.map(o => o.id === id ? { ...o, ...t } : o))
-      await supabase.from('objetos').update(t).eq('id', id)
-    }
+    await supabase.from(n.kind === 'prat' ? 'prateleiras' : 'objetos').update({ pos_x: n.pos_x, pos_z: n.pos_z }).eq('id', id)
+  }
+  async function onRot(id: string, rad: number) {
+    const n = nodes.find(x => x.id === id); if (!n) return
+    if (n.kind === 'prat') await editarPrat(id, { rotacao: rad })
+    else await editarObj(id, { rot_y: rad })
+  }
+  async function onResize(id: string, larg: number, alt: number, prof: number) {
+    await editarObj(id, { larg, alt, prof })
   }
 
   async function editarObj(id: string, campos: Partial<Objeto>) {
@@ -115,9 +122,9 @@ export default function Editor3D() {
       <div className="foco">
         <div className="foco-3d">
           <Suspense fallback={<div className="muted pad">Carregando 3D…</div>}>
-            <Cena3D nodes={nodes} selId={selId} modo={modo} gizmo={gizmo}
+            <Cena3D nodes={nodes} selId={selId} modo={modo} ferramenta={ferramenta}
               colocando={colocando} onColocar={(x, z) => { if (colocando) criarEm(colocando, x, z) }}
-              onSelect={setSelId} onChange={onChange} />
+              onSelect={setSelId} onDragLive={onDragLive} onDragEnd={onDragEnd} onRot={onRot} onResize={onResize} />
           </Suspense>
           {colocando && (
             <div className="colocar-banner">
@@ -136,6 +143,15 @@ export default function Editor3D() {
           ) : (
             <>
               <div className="card">
+                <div className="secao-rot" style={{ marginTop: 0 }}>Ferramenta</div>
+                <div className="row">
+                  <button className={`filtro-chip${ferramenta === 'mover' ? ' on' : ''}`} onClick={() => setFerramenta('mover')}>✥ Mover</button>
+                  <button className={`filtro-chip${ferramenta === 'girar' ? ' on' : ''}`} onClick={() => setFerramenta('girar')}>⟳ Girar</button>
+                  <button className={`filtro-chip${ferramenta === 'redimensionar' ? ' on' : ''}`} onClick={() => setFerramenta('redimensionar')}>⤢ Tamanho</button>
+                </div>
+              </div>
+
+              <div className="card">
                 <div className="secao-rot" style={{ marginTop: 0 }}>Adicionar</div>
                 <div className="add-grid">
                   {TIPOS.map(x => <button key={x.t} className={`secundario${colocando === x.t ? ' on' : ''}`} onClick={() => setColocando(x.t)}>{x.l}</button>)}
@@ -147,10 +163,6 @@ export default function Editor3D() {
                   <div className="muted">Clique num objeto para editar. Arraste as setas para mover; alterne para girar.</div>
                 ) : (
                   <>
-                    <div className="row" style={{ marginBottom: 8 }}>
-                      <button className={`filtro-chip${gizmo === 'translate' ? ' on' : ''}`} onClick={() => setGizmo('translate')}>✥ Mover</button>
-                      <button className={`filtro-chip${gizmo === 'rotate' ? ' on' : ''}`} onClick={() => setGizmo('rotate')}>⟳ Girar</button>
-                    </div>
                     <h3 style={{ textTransform: 'capitalize' }}>{sel.tipo.replace('_', '-')}</h3>
                     {sel.kind === 'prat' ? (
                       <>
