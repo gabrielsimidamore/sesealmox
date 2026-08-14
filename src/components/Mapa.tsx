@@ -7,36 +7,90 @@ const PrateleiraView = lazy(() => import('./PrateleiraView'))
 type Loc = { id: string; codigo: string; prateleira_id: string | null; linha: number | null; coluna: number | null }
 type ItemGaveta = { quantidade: number; codigo_m: string; nome: string | null }
 
+// prefixo que define a prateleira: "7B-3E1" -> "7B"
+function prefixo(codigo: string) {
+  return codigo.includes('-') ? codigo.split('-')[0] : codigo
+}
+
 export default function Mapa() {
   const [prateleiras, setPrateleiras] = useState<Prateleira[]>([])
   const [locs, setLocs] = useState<Loc[]>([])
   const [status, setStatus] = useState<Record<string, boolean>>({})
+  const [usados, setUsados] = useState<Set<string>>(new Set())
   const [selId, setSelId] = useState<string | null>(null)
   const [selSlot, setSelSlot] = useState<{ linha: number; coluna: number } | null>(null)
   const [itensGaveta, setItensGaveta] = useState<ItemGaveta[]>([])
-  const [novoCod, setNovoCod] = useState('')
+  const [carregando, setCarregando] = useState(true)
+  const [sincronizando, setSincronizando] = useState(false)
 
-  async function carregar() {
+  async function recarregar() {
     const [pr, lc, il] = await Promise.all([
       supabase.from('prateleiras').select('*').order('created_at'),
       supabase.from('locacoes').select('id, codigo, prateleira_id, linha, coluna'),
       supabase.from('item_locacoes').select('locacao_id, quantidade'),
     ])
-    setPrateleiras((pr.data as Prateleira[]) || [])
-    setLocs((lc.data as Loc[]) || [])
     const st: Record<string, boolean> = {}
+    const us = new Set<string>()
     for (const r of (il.data || []) as any[]) {
+      us.add(r.locacao_id)
       if ((r.quantidade || 0) > 0) st[r.locacao_id] = true
     }
-    setStatus(st)
+    const prs = (pr.data as Prateleira[]) || []
+    const locsData = (lc.data as Loc[]) || []
+    setPrateleiras(prs); setLocs(locsData); setStatus(st); setUsados(us)
+    return { prs, locsData, us }
   }
-  useEffect(() => { carregar() }, [])
 
-  async function novaPrateleira() {
-    const n = prateleiras.length + 1
-    await supabase.from('prateleiras').insert({ nome: `Prateleira ${n}`, pos_x: 40 + n * 20, pos_z: 40 })
-    carregar()
+  // Cria/atualiza prateleiras a partir das locações usadas nos itens
+  async function sincronizar(prs: Prateleira[], locsData: Loc[], us: Set<string>) {
+    setSincronizando(true)
+    const usadas = locsData.filter(l => us.has(l.id))
+    const grupos = new Map<string, Loc[]>()
+    for (const l of usadas) {
+      const k = prefixo(l.codigo)
+      if (!grupos.has(k)) grupos.set(k, [])
+      grupos.get(k)!.push(l)
+    }
+    let i = prs.length
+    for (const [nome, ls] of grupos) {
+      ls.sort((a, b) => a.codigo.localeCompare(b.codigo))
+      const n = ls.length
+      const colunas = Math.max(1, Math.min(6, Math.ceil(Math.sqrt(n))))
+      const linhas = Math.max(1, Math.ceil(n / colunas))
+      let pr = prs.find(p => p.nome === nome)
+      if (!pr) {
+        const pos_x = 20 + (i % 4) * 210
+        const pos_z = 20 + Math.floor(i / 4) * 210
+        const { data } = await supabase.from('prateleiras')
+          .insert({ nome, linhas, colunas, pos_x, pos_z }).select().single()
+        pr = data as Prateleira; i++
+      } else if (pr.linhas !== linhas || pr.colunas !== colunas) {
+        await supabase.from('prateleiras').update({ linhas, colunas }).eq('id', pr.id)
+      }
+      for (let idx = 0; idx < ls.length; idx++) {
+        const linha = Math.floor(idx / colunas), coluna = idx % colunas
+        const l = ls[idx]
+        if (l.prateleira_id !== pr!.id || l.linha !== linha || l.coluna !== coluna) {
+          await supabase.from('locacoes').update({ prateleira_id: pr!.id, linha, coluna }).eq('id', l.id)
+        }
+      }
+    }
+    await recarregar()
+    setSincronizando(false)
   }
+
+  useEffect(() => {
+    (async () => {
+      const { prs, locsData, us } = await recarregar()
+      const usadasSemPrat = locsData.some(l => us.has(l.id) && !l.prateleira_id)
+      const gruposNovos = new Set([...us].map(id => {
+        const l = locsData.find(x => x.id === id); return l ? prefixo(l.codigo) : ''
+      }))
+      const faltamShelves = [...gruposNovos].some(nome => nome && !prs.find(p => p.nome === nome))
+      if (usadasSemPrat || faltamShelves) await sincronizar(prs, locsData, us)
+      setCarregando(false)
+    })()
+  }, [])
 
   function iniciarDrag(e: React.PointerEvent, p: Prateleira) {
     e.preventDefault()
@@ -55,20 +109,8 @@ export default function Mapa() {
     window.addEventListener('pointerup', soltar)
   }
 
-  async function atualizar(id: string, campos: Partial<Prateleira>) {
-    setPrateleiras(prev => prev.map(s => s.id === id ? { ...s, ...campos } : s))
-    await supabase.from('prateleiras').update(campos).eq('id', id)
-  }
-
-  async function excluir(id: string) {
-    if (!confirm('Excluir esta prateleira? As gavetas voltam a ficar sem posição.')) return
-    await supabase.from('prateleiras').delete().eq('id', id)
-    if (selId === id) setSelId(null)
-    carregar()
-  }
-
   async function abrirSlot(linha: number, coluna: number) {
-    setSelSlot({ linha, coluna }); setNovoCod('')
+    setSelSlot({ linha, coluna })
     const loc = locs.find(l => l.prateleira_id === selId && l.linha === linha && l.coluna === coluna)
     if (!loc) { setItensGaveta([]); return }
     const { data } = await supabase
@@ -76,24 +118,7 @@ export default function Mapa() {
     setItensGaveta(((data as any[]) || []).map(r => ({ quantidade: r.quantidade, codigo_m: r.itens?.codigo_m, nome: r.itens?.nome })))
   }
 
-  async function atribuir(linha: number, coluna: number) {
-    const cod = novoCod.trim()
-    if (!cod || !selId) return
-    const existente = locs.find(l => l.codigo.toLowerCase() === cod.toLowerCase())
-    if (existente) {
-      await supabase.from('locacoes').update({ prateleira_id: selId, linha, coluna }).eq('id', existente.id)
-    } else {
-      await supabase.from('locacoes').insert({ codigo: cod, prateleira_id: selId, linha, coluna })
-    }
-    await carregar(); setNovoCod('')
-  }
-
-  async function removerDaGaveta(locId: string) {
-    await supabase.from('locacoes').update({ prateleira_id: null, linha: null, coluna: null }).eq('id', locId)
-    setSelSlot(null); carregar()
-  }
-
-  // ---- Foco numa prateleira ----
+  // ---------- Foco 3D numa prateleira ----------
   const shelf = prateleiras.find(p => p.id === selId) || null
   if (shelf) {
     const gavetas: GavetaInfo[] = []
@@ -111,7 +136,7 @@ export default function Mapa() {
     return (
       <div>
         <div className="page-head">
-          <button className="secundario" onClick={() => { setSelId(null); setSelSlot(null) }}>← Voltar à planta</button>
+          <button className="secundario" onClick={() => { setSelId(null); setSelSlot(null) }}>← Voltar ao mapa</button>
           <h2 style={{ marginLeft: 8, flex: 1 }}>{shelf.nome}</h2>
         </div>
 
@@ -131,10 +156,9 @@ export default function Mapa() {
               <div className="num" style={{ color: 'var(--vazio-txt)' }}>{vazias}</div>
               <div className="resumo-txt">gavetas vazias<span className="muted"> · {ocupadas} com item</span></div>
             </div>
-
             <div className="card">
               {!selSlot ? (
-                <div className="muted">Clique numa gaveta para ver o conteúdo.</div>
+                <div className="muted">Clique numa gaveta para abrir e ver o conteúdo.</div>
               ) : slotLoc ? (
                 <>
                   <h3>📍 {slotLoc.codigo}</h3>
@@ -148,16 +172,9 @@ export default function Mapa() {
                           </div>
                         ))}
                       </div>}
-                  <button className="secundario add" onClick={() => removerDaGaveta(slotLoc.id)}>Tirar locação desta gaveta</button>
                 </>
               ) : (
-                <>
-                  <h3>Gaveta livre</h3>
-                  <div className="muted" style={{ marginBottom: 8 }}>Linha {selSlot.linha + 1}, coluna {selSlot.coluna + 1}. Dê um código de locação:</div>
-                  <input list="loc-sugest" placeholder="Código (ex: 7B-3E1)" value={novoCod} onChange={e => setNovoCod(e.target.value)} />
-                  <datalist id="loc-sugest">{locs.map(l => <option key={l.id} value={l.codigo} />)}</datalist>
-                  <button className="primario" onClick={() => atribuir(selSlot.linha, selSlot.coluna)}>Salvar na gaveta</button>
-                </>
+                <div className="muted">Gaveta livre (sem locação atribuída).</div>
               )}
             </div>
           </aside>
@@ -166,30 +183,33 @@ export default function Mapa() {
     )
   }
 
-  // ---- Planta de cima ----
+  // ---------- Mapa de cima ----------
   return (
     <div>
       <div className="page-head">
         <h2>Mapa do estoque</h2>
-        <button className="primario" style={{ width: 'auto' }} onClick={novaPrateleira}>+ Nova prateleira</button>
+        <button className="secundario" style={{ width: 'auto' }} disabled={sincronizando}
+          onClick={() => sincronizar(prateleiras, locs, usados)}>
+          {sincronizando ? 'Gerando…' : '↻ Regenerar'}
+        </button>
       </div>
-      <div className="muted pad" style={{ paddingTop: 0 }}>Arraste pelo ⠿ para posicionar. Clique em “Ver 3D” para entrar na prateleira.</div>
+      <div className="muted pad" style={{ paddingTop: 0 }}>
+        Prateleiras geradas automaticamente das suas locações. Arraste pelo ⠿ para organizar. Clique para ver em 3D.
+      </div>
 
       <div className="board">
-        {prateleiras.length === 0 && <div className="muted pad">Nenhuma prateleira ainda. Crie a primeira.</div>}
-        {prateleiras.map(p => {
+        {carregando ? (
+          <div className="muted pad">Carregando…</div>
+        ) : prateleiras.length === 0 ? (
+          <div className="muted pad">Nenhuma prateleira ainda. Cadastre itens com locação (ex: 7B-3E1) que o mapa aparece.</div>
+        ) : prateleiras.map(p => {
           const total = p.linhas * p.colunas
           const comLoc = locs.filter(l => l.prateleira_id === p.id)
           return (
-            <div key={p.id} className="shelf-card" style={{ left: p.pos_x, top: p.pos_z }}>
+            <div key={p.id} className="shelf-card mapa" style={{ left: p.pos_x, top: p.pos_z }}>
               <div className="shelf-top">
                 <span className="shelf-drag" onPointerDown={e => iniciarDrag(e, p)}>⠿</span>
-                <input className="shelf-nome" value={p.nome} onChange={e => atualizar(p.id, { nome: e.target.value })} />
-                <button className="rm" onClick={() => excluir(p.id)}>✕</button>
-              </div>
-              <div className="shelf-dims">
-                <label>Linhas<input type="number" min={1} max={12} value={p.linhas} onChange={e => atualizar(p.id, { linhas: Math.max(1, Number(e.target.value) || 1) })} /></label>
-                <label>Colunas<input type="number" min={1} max={12} value={p.colunas} onChange={e => atualizar(p.id, { colunas: Math.max(1, Number(e.target.value) || 1) })} /></label>
+                <span className="shelf-nome-txt">{p.nome}</span>
               </div>
               <div className="shelf-mini" style={{ gridTemplateColumns: `repeat(${p.colunas}, 1fr)` }}>
                 {Array.from({ length: total }).map((_, idx) => {
