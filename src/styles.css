@@ -255,7 +255,9 @@ button.linha:hover, .linha:hover { transform: translateY(-1px); box-shadow: var(
 .barra-val { text-align: right; font-weight: 700; font-size: 14px; }
 
 /* ===== Mapa 3D ===== */
-.board { position: relative; min-height: 62vh; background: var(--card); border: 1px solid var(--borda); border-radius: 16px; margin-top: 8px; overflow: hidden; background-image: radial-gradient(var(--borda) 1px, transparent 1px); background-size: 22px 22px; }
+.board { position: relative; min-height: 66vh; background: var(--card); border: 1px solid var(--borda); border-radius: 16px; margin-top: 8px; overflow: hidden; background-image: radial-gradient(var(--borda) 1px, transparent 1px); background-size: 22px 22px; cursor: grab; touch-action: none; }
+.board:active { cursor: grabbing; }
+.board-inner { position: absolute; inset: 0; will-change: transform; }
 .shelf-card { position: absolute; width: 190px; background: var(--surface); border: 1px solid var(--borda); border-radius: 12px; padding: 8px; box-shadow: var(--sombra); }
 .shelf-top { display: flex; align-items: center; gap: 6px; }
 .shelf-drag { cursor: grab; font-size: 16px; color: var(--muted); user-select: none; touch-action: none; padding: 2px 4px; }
@@ -275,6 +277,7 @@ button.linha:hover, .linha:hover { transform: translateY(-1px); box-shadow: var(
 .foco { display: grid; grid-template-columns: 1fr 320px; gap: 14px; }
 .foco-3d { height: 62vh; background: linear-gradient(180deg, var(--hover), var(--card)); border: 1px solid var(--borda); border-radius: 16px; overflow: hidden; }
 .foco-info { display: flex; flex-direction: column; gap: 12px; }
+.gaveta-wrap { pointer-events: none !important; }
 .gaveta-label { background: rgba(0,0,0,.6); color: #fff; font-size: 11px; font-weight: 700; padding: 1px 5px; border-radius: 4px; white-space: nowrap; pointer-events: none; }
 @media (max-width: 760px) {
   .foco { grid-template-columns: 1fr; }

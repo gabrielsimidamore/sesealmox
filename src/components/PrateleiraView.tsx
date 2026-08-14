@@ -17,16 +17,28 @@ function Gaveta({ g, aberta, onClick }: { g: GavetaInfo; aberta: boolean; onClic
   const ref = useRef<THREE.Mesh>(null)
   useFrame(() => {
     if (ref.current) {
-      const alvo = aberta ? 0.7 : 0
-      ref.current.position.z += (alvo - ref.current.position.z) * 0.2
+      const alvo = aberta ? 0.95 : 0
+      ref.current.position.z += (alvo - ref.current.position.z) * 0.18
     }
   })
   const cor = !g.assigned ? '#7f8ea3' : g.temItem ? '#22a559' : '#d64545'
+  const clicar = (e: any) => { e.stopPropagation(); onClick() }
   return (
-    <mesh ref={ref} onClick={(e) => { e.stopPropagation(); onClick() }}>
+    <mesh
+      ref={ref}
+      onClick={clicar}
+      onPointerDown={clicar}
+      onPointerOver={(e) => { e.stopPropagation(); document.body.style.cursor = 'pointer' }}
+      onPointerOut={() => { document.body.style.cursor = 'auto' }}
+    >
       <boxGeometry args={[DW, DH, DEP]} />
       <meshStandardMaterial color={cor} metalness={0.1} roughness={0.7} />
-      <Html position={[0, 0, DEP / 2 + 0.02]} center distanceFactor={7} occlude>
+      {/* puxador da gaveta */}
+      <mesh position={[0, -DH / 2 + 0.08, DEP / 2 + 0.03]}>
+        <boxGeometry args={[DW * 0.5, 0.08, 0.06]} />
+        <meshStandardMaterial color="#1f2937" />
+      </mesh>
+      <Html position={[0, 0.05, DEP / 2 + 0.02]} center distanceFactor={7} wrapperClass="gaveta-wrap">
         <div className="gaveta-label">{g.codigo || '+'}</div>
       </Html>
     </mesh>
