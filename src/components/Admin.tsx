@@ -1,14 +1,17 @@
 import { useEffect, useState } from 'react'
-import { supabase, type Item, type LocalRef } from '../lib/supabase'
+import { supabase, type Item } from '../lib/supabase'
 import { comprimirImagem } from '../lib/imagem'
+import { registrarHistorico } from '../lib/historico'
 
 const vazio = { codigo_m: '', nome: '', descricao: '', categoria: '' }
-const locVazia: LocalRef = { codigo: '', vazio: false }
+type LocEdit = { codigo: string; quantidade: number }
+const locNova: LocEdit = { codigo: '', quantidade: 1 }
 
 export default function Admin() {
   const [itens, setItens] = useState<Item[]>([])
+  const [categorias, setCategorias] = useState<string[]>([])
   const [form, setForm] = useState<any>(vazio)
-  const [locs, setLocs] = useState<LocalRef[]>([{ ...locVazia }])
+  const [locs, setLocs] = useState<LocEdit[]>([{ ...locNova }])
   const [fotosAtuais, setFotosAtuais] = useState<string[]>([])
   const [fotosNovas, setFotosNovas] = useState<File[]>([])
   const [editId, setEditId] = useState<string | null>(null)
@@ -18,30 +21,35 @@ export default function Admin() {
   async function carregar() {
     const { data: its } = await supabase
       .from('itens')
-      .select('*, item_locacoes(vazio, locacoes(codigo))')
+      .select('*, item_locacoes(vazio, quantidade, locacoes(codigo))')
       .order('created_at', { ascending: false })
-    setItens((its || []).map((i: any) => ({
+    const lista = (its || []).map((i: any) => ({
       ...i,
-      locais: (i.item_locacoes || []).map((il: any) => ({ codigo: il.locacoes?.codigo || '', vazio: il.vazio })),
-    })))
+      locais: (i.item_locacoes || []).map((il: any) => ({
+        codigo: il.locacoes?.codigo || '', vazio: il.vazio, quantidade: il.quantidade,
+      })),
+    }))
+    setItens(lista)
+    setCategorias([...new Set(lista.map((i: any) => i.categoria).filter(Boolean))] as string[])
   }
   useEffect(() => { carregar() }, [])
 
   function limpar() {
-    setForm(vazio); setLocs([{ ...locVazia }]); setFotosAtuais([]); setFotosNovas([])
+    setForm(vazio); setLocs([{ ...locNova }]); setFotosAtuais([]); setFotosNovas([])
     setEditId(null); setMsg('')
   }
 
   function editar(i: Item) {
     setForm({ codigo_m: i.codigo_m, nome: i.nome || '', descricao: i.descricao || '', categoria: i.categoria || '' })
-    setLocs(i.locais && i.locais.length > 0 ? i.locais.map(l => ({ ...l })) : [{ ...locVazia }])
+    setLocs(i.locais && i.locais.length > 0
+      ? i.locais.map(l => ({ codigo: l.codigo, quantidade: l.quantidade ?? 0 }))
+      : [{ ...locNova }])
     setFotosAtuais(i.fotos && i.fotos.length > 0 ? [...i.fotos] : (i.foto_url ? [i.foto_url] : []))
     setFotosNovas([])
     setEditId(i.id); setMsg('')
     window.scrollTo({ top: 0, behavior: 'smooth' })
   }
 
-  // Texto do endereço -> locacao_id: reaproveita se já existir igual, senão cria.
   async function resolverLocacao(codigo: string): Promise<string> {
     const { data: achada } = await supabase.from('locacoes').select('id').eq('codigo', codigo).maybeSingle()
     if (achada) return achada.id
@@ -54,7 +62,7 @@ export default function Admin() {
     if (!form.codigo_m.trim()) { setMsg('Informe o código M.'); return }
     setSalvando(true); setMsg('')
     try {
-      // 1) upload das fotos novas
+      // 1) fotos (comprimidas)
       const urls: string[] = []
       for (const original of fotosNovas) {
         const f = await comprimirImagem(original)
@@ -65,25 +73,25 @@ export default function Admin() {
       }
       const fotos = [...fotosAtuais, ...urls]
 
-      // 2) resolver locações (dedup por código, ignora vazias)
+      // 2) locações (dedup por código, ignora vazias de código)
       const vistos = new Set<string>()
-      const locRows: { locacao_id: string; vazio: boolean }[] = []
+      const locRows: { locacao_id: string; quantidade: number }[] = []
       for (const l of locs) {
         const cod = l.codigo.trim()
         if (!cod || vistos.has(cod.toLowerCase())) continue
         vistos.add(cod.toLowerCase())
-        locRows.push({ locacao_id: await resolverLocacao(cod), vazio: l.vazio })
+        locRows.push({ locacao_id: await resolverLocacao(cod), quantidade: Math.max(0, Number(l.quantidade) || 0) })
       }
 
-      // 3) salvar o item
+      // 3) item
       const payload = {
         codigo_m: form.codigo_m.trim(),
         nome: form.nome || null,
         descricao: form.descricao || null,
         categoria: form.categoria || null,
         fotos,
-        foto_url: fotos[0] ?? null,               // compat
-        locacao_id: locRows[0]?.locacao_id ?? null, // compat
+        foto_url: fotos[0] ?? null,
+        locacao_id: locRows[0]?.locacao_id ?? null,
         updated_at: new Date().toISOString(),
       }
       let itemId = editId
@@ -96,18 +104,22 @@ export default function Admin() {
         itemId = data!.id
       }
 
-      // 4) regravar as locações do item
+      // 4) locações do item
       await supabase.from('item_locacoes').delete().eq('item_id', itemId)
       if (locRows.length > 0) {
         const { error } = await supabase.from('item_locacoes')
-          .insert(locRows.map(r => ({ item_id: itemId, locacao_id: r.locacao_id, vazio: r.vazio })))
+          .insert(locRows.map(r => ({ item_id: itemId, locacao_id: r.locacao_id, quantidade: r.quantidade })))
         if (error) throw error
       }
+
+      // 5) histórico
+      await registrarHistorico(itemId!, editId ? 'edicao' : 'cadastro', editId ? 'Item editado' : 'Item cadastrado')
 
       setMsg(editId ? 'Item atualizado ✓' : 'Item cadastrado ✓')
       limpar(); carregar()
     } catch (e: any) {
-      setMsg('Erro: ' + (e.message || e))
+      const dup = e?.code === '23505' || /duplicate|unique/i.test(e?.message || '')
+      setMsg(dup ? `Erro: já existe um item com o código "${form.codigo_m.trim()}".` : 'Erro: ' + (e.message || e))
     }
     setSalvando(false)
   }
@@ -120,14 +132,16 @@ export default function Admin() {
 
   return (
     <div className="admin">
+      <div className="page-head"><h2>Cadastro</h2></div>
       <div className="card">
         <h3>{editId ? 'Editar item' : 'Novo item'}</h3>
         <input placeholder="Código M *" value={form.codigo_m} onChange={e => setForm({ ...form, codigo_m: e.target.value })} />
         <input placeholder="Nome" value={form.nome} onChange={e => setForm({ ...form, nome: e.target.value })} />
         <textarea placeholder="Descrição" value={form.descricao} onChange={e => setForm({ ...form, descricao: e.target.value })} />
-        <input placeholder="Categoria" value={form.categoria} onChange={e => setForm({ ...form, categoria: e.target.value })} />
+        <input list="cats" placeholder="Categoria" value={form.categoria} onChange={e => setForm({ ...form, categoria: e.target.value })} />
+        <datalist id="cats">{categorias.map(c => <option key={c} value={c} />)}</datalist>
 
-        <div className="secao-rot">Endereços / Locações</div>
+        <div className="secao-rot">Locações e quantidade</div>
         {locs.map((l, idx) => (
           <div className="loc-row" key={idx}>
             <input
@@ -135,22 +149,20 @@ export default function Admin() {
               value={l.codigo}
               onChange={e => setLocs(locs.map((x, i) => i === idx ? { ...x, codigo: e.target.value } : x))}
             />
-            <label className="check">
-              <input
-                type="checkbox"
-                checked={l.vazio}
-                onChange={e => setLocs(locs.map((x, i) => i === idx ? { ...x, vazio: e.target.checked } : x))}
-              />
-              Vazio
-            </label>
+            <input
+              className="qtd-input" type="number" min={0} inputMode="numeric" placeholder="Qtd"
+              value={l.quantidade}
+              onChange={e => setLocs(locs.map((x, i) => i === idx ? { ...x, quantidade: Number(e.target.value) } : x))}
+            />
             <button
               className="rm"
-              onClick={() => setLocs(locs.length > 1 ? locs.filter((_, i) => i !== idx) : [{ ...locVazia }])}
+              onClick={() => setLocs(locs.length > 1 ? locs.filter((_, i) => i !== idx) : [{ ...locNova }])}
               aria-label="Remover endereço"
             >✕</button>
           </div>
         ))}
-        <button className="secundario add" onClick={() => setLocs([...locs, { ...locVazia }])}>+ Adicionar endereço</button>
+        <div className="dica muted">Quantidade 0 = locação marcada como vazia.</div>
+        <button className="secundario add" onClick={() => setLocs([...locs, { ...locNova }])}>+ Adicionar locação</button>
 
         <div className="secao-rot">Fotos</div>
         {(fotosAtuais.length > 0 || fotosNovas.length > 0) && (
@@ -203,7 +215,9 @@ export default function Admin() {
                 <div className="nome">{i.nome || '—'}</div>
                 <div className="meta">
                   {(i.locais || []).map((l, idx) => (
-                    <span key={idx} className={`tag ${l.vazio ? 'vazio' : 'loc'}`}>📍 {l.codigo}{l.vazio ? ' • vazio' : ''}</span>
+                    <span key={idx} className={`tag ${l.vazio ? 'vazio' : 'loc'}`}>
+                      📍 {l.codigo}{l.vazio ? ' • vazio' : ` • ${l.quantidade ?? 0}`}
+                    </span>
                   ))}
                 </div>
               </div>

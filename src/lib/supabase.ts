@@ -8,6 +8,7 @@ export const supabase = createClient(url, key)
 export type LocalRef = {
   codigo: string
   vazio: boolean
+  quantidade?: number
   locacao_id?: string
   vazio_desde?: string | null
 }

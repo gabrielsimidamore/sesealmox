@@ -210,6 +210,30 @@ button.linha:hover, .linha:hover { transform: translateY(-1px); box-shadow: var(
 .toggle-vazio:disabled { opacity: .6; }
 .vazio-tempo { font-size: 12px; }
 
+/* quantidade no cadastro */
+.qtd-input { flex: 0 0 78px; margin: 0; text-align: center; }
+.dica { font-size: 12px; margin: 2px 0 6px; }
+
+/* filtros da busca */
+.filtros { display: flex; gap: 8px; align-items: center; margin: 10px 0 4px; flex-wrap: wrap; }
+.filtros select { width: auto; flex: 1; min-width: 160px; margin: 0; }
+.filtro-chip { background: var(--card); border: 1px solid var(--borda); color: var(--texto); border-radius: 20px; padding: 9px 14px; font-weight: 600; font-size: 14px; transition: background .15s; }
+.filtro-chip:hover { background: var(--hover); }
+.filtro-chip.on { background: var(--vazio-bg); color: var(--vazio-txt); border-color: transparent; }
+
+/* stepper de quantidade no painel */
+.locais-lista .li.vazia { outline: 1px solid var(--vazio-bg); }
+.stepper { display: flex; align-items: center; gap: 8px; }
+.stepper button { width: 30px; height: 30px; border-radius: 8px; border: 1px solid var(--borda); background: var(--card); color: var(--texto); font-size: 18px; line-height: 1; }
+.stepper button:disabled { opacity: .4; }
+.stepper .qtd { min-width: 26px; text-align: center; font-weight: 800; font-size: 16px; }
+
+/* histórico no painel */
+.hist-lista { display: flex; flex-direction: column; gap: 8px; }
+.hist-item { padding: 8px 10px; background: var(--hover); border-radius: 8px; }
+.hist-txt { font-size: 14px; }
+.hist-meta { font-size: 12px; color: var(--muted); margin-top: 2px; }
+
 /* ===== Relatórios ===== */
 .resumo { display: flex; align-items: center; gap: 14px; }
 .resumo .num { font-size: 38px; font-weight: 800; color: var(--azul); line-height: 1; }
