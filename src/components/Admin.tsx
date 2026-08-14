@@ -109,9 +109,9 @@ export default function Admin() {
         </select>
         {form.locacao_id === '__novo__' && (
           <input
-            placeholder="Digite o novo endereço (ex: Prateleira A - Corredor 3)"
+            placeholder="Digite o novo endereço (ex: 7B-3E1)"
             value={novoEndereco}
-            onChange={e => setNovoEndereco(e.target.value)}
+            onChange={e => setNovoEndereco(e.target.value.toUpperCase())}
             autoFocus
           />
         )}

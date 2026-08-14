@@ -38,14 +38,14 @@ export default function App() {
       </header>
 
       <main className="conteudo">
-        {itemAberto ? (
-          <ItemDetalhe item={itemAberto} onVoltar={() => setItemAberto(null)} />
-        ) : tela === 'busca' ? (
-          <Busca onAbrir={(it) => setItemAberto(it)} />
-        ) : (
-          <Admin />
-        )}
+        {tela === 'busca'
+          ? <Busca onAbrir={(it) => setItemAberto(it)} />
+          : <Admin />}
       </main>
+
+      {itemAberto && (
+        <ItemDetalhe item={itemAberto} onFechar={() => setItemAberto(null)} />
+      )}
     </div>
   )
 }

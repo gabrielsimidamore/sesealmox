@@ -86,3 +86,38 @@ textarea { min-height: 70px; resize: vertical; }
 .row { display: flex; gap: 8px; align-items: center; }
 .row input { margin: 0; }
 .chips { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+
+/* ===== Painel lateral (drawer) do item ===== */
+.drawer-overlay {
+  position: fixed; inset: 0; z-index: 40;
+  display: flex; justify-content: flex-end;
+  background: rgba(15, 30, 50, 0);
+  transition: background .26s ease;
+}
+.drawer-overlay.aberto { background: rgba(15, 30, 50, .45); }
+
+.drawer {
+  width: 420px; max-width: 92vw; height: 100%;
+  background: var(--card);
+  box-shadow: -10px 0 30px rgba(0, 0, 0, .18);
+  display: flex; flex-direction: column; overflow: hidden;
+  transform: translateX(100%);
+  transition: transform .28s cubic-bezier(.22, .61, .36, 1);
+}
+.drawer.aberto { transform: translateX(0); }
+
+.drawer-topo {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 14px 16px; border-bottom: 1px solid var(--borda); flex: 0 0 auto;
+}
+.drawer-topo .cod { font-weight: 800; color: var(--azul-esc); font-size: 15px; }
+.drawer-fechar {
+  background: #eef2f8; border: 0; border-radius: 8px;
+  width: 34px; height: 34px; font-size: 15px; color: var(--texto);
+}
+.drawer-corpo { padding: 16px; overflow-y: auto; }
+.drawer-corpo h2 { margin: 4px 0 14px; }
+
+@media (prefers-reduced-motion: reduce) {
+  .drawer, .drawer-overlay { transition: none; }
+}
