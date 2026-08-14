@@ -2,6 +2,10 @@ import { useEffect, useState } from 'react'
 import type { Item } from '../lib/supabase'
 
 export default function ItemDetalhe({ item, onFechar }: { item: Item; onFechar: () => void }) {
+  const fotos = (item.fotos && item.fotos.length > 0)
+    ? item.fotos
+    : (item.foto_url ? [item.foto_url] : [])
+  const [sel, setSel] = useState(0)
   const [zoom, setZoom] = useState(false)
   const [visivel, setVisivel] = useState(false)
 
@@ -37,17 +41,38 @@ export default function ItemDetalhe({ item, onFechar }: { item: Item; onFechar: 
         </div>
 
         <div className="drawer-corpo">
-          <div className="foto-grande" onClick={() => item.foto_url && setZoom(true)}>
-            {item.foto_url
-              ? <img src={item.foto_url} alt={item.nome || item.codigo_m} />
+          <div className="foto-grande" onClick={() => fotos[sel] && setZoom(true)}>
+            {fotos.length > 0
+              ? <img src={fotos[sel]} alt={item.nome || item.codigo_m} />
               : <div className="sem-foto grande">Sem foto</div>}
           </div>
+          {fotos.length > 1 && (
+            <div className="galeria">
+              {fotos.map((u, i) => (
+                <img key={i} src={u} className={i === sel ? 'sel' : ''} onClick={() => setSel(i)} alt="" />
+              ))}
+            </div>
+          )}
 
           <h2>{item.nome || item.codigo_m}</h2>
           <div className="campos">
             <div><span className="rot">Código M</span><b>{item.codigo_m}</b></div>
             {item.categoria && <div><span className="rot">Categoria</span>{item.categoria}</div>}
-            {item.locacao_codigo && <div><span className="rot">Endereço</span>📍 {item.locacao_codigo}</div>}
+
+            {item.locais && item.locais.length > 0 && (
+              <div>
+                <span className="rot">Endereços</span>
+                <div className="locais-lista">
+                  {item.locais.map((l, i) => (
+                    <div className="li" key={i}>
+                      <span>📍 {l.codigo}</span>
+                      <span className={`tag ${l.vazio ? 'vazio' : 'loc'}`}>{l.vazio ? 'vazio' : 'com estoque'}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
             {item.descricao && <div className="desc"><span className="rot">Descrição</span>{item.descricao}</div>}
           </div>
         </div>
@@ -55,7 +80,7 @@ export default function ItemDetalhe({ item, onFechar }: { item: Item; onFechar: 
 
       {zoom && (
         <div className="lightbox" onClick={(e) => { e.stopPropagation(); setZoom(false) }}>
-          <img src={item.foto_url!} alt="" />
+          <img src={fotos[sel]} alt="" />
         </div>
       )}
     </div>

@@ -39,8 +39,8 @@ export default function Busca({ onAbrir }: { onAbrir: (i: Item) => void }) {
         {resultados.map(it => (
           <button key={it.id} className="linha" onClick={() => onAbrir(it)}>
             <div className="thumb">
-              {it.foto_url
-                ? <img src={it.foto_url} alt="" />
+              {it.fotos && it.fotos.length > 0
+                ? <img src={it.fotos[0]} alt="" />
                 : <span className="sem-foto">sem foto</span>}
             </div>
             <div className="info">
@@ -48,7 +48,11 @@ export default function Busca({ onAbrir }: { onAbrir: (i: Item) => void }) {
               <div className="nome">{it.nome || '—'}</div>
               <div className="meta">
                 {it.categoria && <span className="tag">{it.categoria}</span>}
-                {it.locacao_codigo && <span className="tag loc">📍 {it.locacao_codigo}</span>}
+                {(it.locais || []).map((l, idx) => (
+                  <span key={idx} className={`tag ${l.vazio ? 'vazio' : 'loc'}`}>
+                    📍 {l.codigo}{l.vazio ? ' • vazio' : ''}
+                  </span>
+                ))}
               </div>
             </div>
           </button>

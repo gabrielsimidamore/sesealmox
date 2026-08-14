@@ -5,8 +5,9 @@ import Login from './components/Login'
 import Busca from './components/Busca'
 import ItemDetalhe from './components/ItemDetalhe'
 import Admin from './components/Admin'
+import Relatorios from './components/Relatorios'
 
-type Tela = 'busca' | 'admin'
+type Tela = 'busca' | 'admin' | 'relatorios'
 
 export default function App() {
   const [session, setSession] = useState<Session | null>(null)
@@ -33,6 +34,7 @@ export default function App() {
         <nav>
           <button className={tela === 'busca' ? 'nav on' : 'nav'} onClick={() => { setTela('busca'); setItemAberto(null) }}>Buscar</button>
           <button className={tela === 'admin' ? 'nav on' : 'nav'} onClick={() => { setTela('admin'); setItemAberto(null) }}>Admin</button>
+          <button className={tela === 'relatorios' ? 'nav on' : 'nav'} onClick={() => { setTela('relatorios'); setItemAberto(null) }}>Relatórios</button>
           <button className="nav sair" onClick={() => supabase.auth.signOut()}>Sair</button>
         </nav>
       </header>
@@ -40,7 +42,9 @@ export default function App() {
       <main className="conteudo">
         {tela === 'busca'
           ? <Busca onAbrir={(it) => setItemAberto(it)} />
-          : <Admin />}
+          : tela === 'admin'
+          ? <Admin />
+          : <Relatorios />}
       </main>
 
       {itemAberto && (
