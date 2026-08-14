@@ -1,9 +1,11 @@
 import { useEffect, useState } from 'react'
 import { supabase } from '../lib/supabase'
+import { tempoVazia } from '../lib/datas'
 
 type Linha = {
   id: string
   vazio: boolean
+  vazio_desde: string | null
   locacoes: { codigo: string; descricao: string | null } | null
   itens: { codigo_m: string; nome: string | null } | null
 }
@@ -16,8 +18,9 @@ export default function Relatorios() {
     setCarregando(true)
     const { data } = await supabase
       .from('item_locacoes')
-      .select('id, vazio, locacoes(codigo, descricao), itens(codigo_m, nome)')
+      .select('id, vazio, vazio_desde, locacoes(codigo, descricao), itens(codigo_m, nome)')
       .eq('vazio', true)
+      .order('vazio_desde', { ascending: true })
     setLinhas((data as any) || [])
     setCarregando(false)
   }
@@ -50,7 +53,7 @@ export default function Relatorios() {
                   <div className="cod">📍 {l.locacoes?.codigo || '—'}</div>
                   <div className="nome">{l.itens?.codigo_m} — {l.itens?.nome || '—'}</div>
                 </div>
-                <span className="tag vazio">vazio</span>
+                <span className="tag vazio">{l.vazio_desde ? tempoVazia(l.vazio_desde) : 'vazio'}</span>
               </div>
             ))}
           </div>

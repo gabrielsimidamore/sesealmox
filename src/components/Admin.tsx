@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { supabase, type Item, type LocalRef } from '../lib/supabase'
+import { comprimirImagem } from '../lib/imagem'
 
 const vazio = { codigo_m: '', nome: '', descricao: '', categoria: '' }
 const locVazia: LocalRef = { codigo: '', vazio: false }
@@ -55,7 +56,8 @@ export default function Admin() {
     try {
       // 1) upload das fotos novas
       const urls: string[] = []
-      for (const f of fotosNovas) {
+      for (const original of fotosNovas) {
+        const f = await comprimirImagem(original)
         const nome = `${Date.now()}_${Math.random().toString(36).slice(2, 7)}_${f.name.replace(/[^\w.\-]/g, '_')}`
         const { error: upErr } = await supabase.storage.from('fotos').upload(nome, f, { upsert: true })
         if (upErr) throw upErr

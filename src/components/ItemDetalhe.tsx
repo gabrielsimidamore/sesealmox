@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
-import type { Item } from '../lib/supabase'
+import { supabase, type Item, type LocalRef } from '../lib/supabase'
+import { tempoVazia } from '../lib/datas'
 
 export default function ItemDetalhe({ item, onFechar }: { item: Item; onFechar: () => void }) {
   const fotos = (item.fotos && item.fotos.length > 0)
@@ -8,6 +9,8 @@ export default function ItemDetalhe({ item, onFechar }: { item: Item; onFechar: 
   const [sel, setSel] = useState(0)
   const [zoom, setZoom] = useState(false)
   const [visivel, setVisivel] = useState(false)
+  const [locais, setLocais] = useState<LocalRef[]>(item.locais || [])
+  const [salvandoLoc, setSalvandoLoc] = useState<string | null>(null)
 
   // anima a entrada no próximo frame após montar
   useEffect(() => {
@@ -26,6 +29,23 @@ export default function ItemDetalhe({ item, onFechar }: { item: Item; onFechar: 
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
   }, [])
+
+  async function alternarVazio(l: LocalRef) {
+    if (!l.locacao_id) return
+    const novo = !l.vazio
+    setSalvandoLoc(l.locacao_id)
+    const { error } = await supabase
+      .from('item_locacoes')
+      .update({ vazio: novo })
+      .eq('item_id', item.id)
+      .eq('locacao_id', l.locacao_id)
+    setSalvandoLoc(null)
+    if (!error) {
+      setLocais(locais.map(x => x.locacao_id === l.locacao_id
+        ? { ...x, vazio: novo, vazio_desde: novo ? new Date().toISOString() : null }
+        : x))
+    }
+  }
 
   return (
     <div className={`drawer-overlay${visivel ? ' aberto' : ''}`} onClick={fechar}>
@@ -59,14 +79,25 @@ export default function ItemDetalhe({ item, onFechar }: { item: Item; onFechar: 
             <div><span className="rot">Código M</span><b>{item.codigo_m}</b></div>
             {item.categoria && <div><span className="rot">Categoria</span>{item.categoria}</div>}
 
-            {item.locais && item.locais.length > 0 && (
+            {locais.length > 0 && (
               <div>
                 <span className="rot">Endereços</span>
                 <div className="locais-lista">
-                  {item.locais.map((l, i) => (
+                  {locais.map((l, i) => (
                     <div className="li" key={i}>
-                      <span>📍 {l.codigo}</span>
-                      <span className={`tag ${l.vazio ? 'vazio' : 'loc'}`}>{l.vazio ? 'vazio' : 'com estoque'}</span>
+                      <div>
+                        <span>📍 {l.codigo}</span>
+                        {l.vazio && l.vazio_desde && (
+                          <span className="muted vazio-tempo"> · vazia {tempoVazia(l.vazio_desde)}</span>
+                        )}
+                      </div>
+                      <button
+                        className={`toggle-vazio ${l.vazio ? 'on' : ''}`}
+                        disabled={salvandoLoc === l.locacao_id}
+                        onClick={() => alternarVazio(l)}
+                      >
+                        {salvandoLoc === l.locacao_id ? '…' : (l.vazio ? 'vazio' : 'com estoque')}
+                      </button>
                     </div>
                   ))}
                 </div>

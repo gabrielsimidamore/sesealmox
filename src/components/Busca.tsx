@@ -1,10 +1,13 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useRef, useState, lazy, Suspense } from 'react'
 import { supabase, type Item } from '../lib/supabase'
+
+const Scanner = lazy(() => import('./Scanner'))
 
 export default function Busca({ onAbrir }: { onAbrir: (i: Item) => void }) {
   const [termo, setTermo] = useState('')
   const [resultados, setResultados] = useState<Item[]>([])
   const [carregando, setCarregando] = useState(false)
+  const [scan, setScan] = useState(false)
   const timer = useRef<number | undefined>(undefined)
 
   useEffect(() => {
@@ -21,13 +24,27 @@ export default function Busca({ onAbrir }: { onAbrir: (i: Item) => void }) {
 
   return (
     <div>
-      <input
-        className="busca"
-        autoFocus
-        placeholder="Código M, nome ou descrição…"
-        value={termo}
-        onChange={e => setTermo(e.target.value)}
-      />
+      <div className="busca-linha">
+        <input
+          className="busca"
+          autoFocus
+          placeholder="Código M, nome ou descrição…"
+          value={termo}
+          onChange={e => setTermo(e.target.value)}
+        />
+        <button className="scan-btn" onClick={() => setScan(true)} aria-label="Escanear código" title="Escanear código">
+          📷
+        </button>
+      </div>
+
+      {scan && (
+        <Suspense fallback={<div className="scanner-overlay"><div className="muted pad">Abrindo câmera…</div></div>}>
+          <Scanner
+            onLer={(texto) => { setTermo(texto); setScan(false) }}
+            onFechar={() => setScan(false)}
+          />
+        </Suspense>
+      )}
 
       {carregando && <div className="muted pad">Buscando…</div>}
       {!carregando && termo && resultados.length === 0 && (

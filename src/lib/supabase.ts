@@ -5,7 +5,12 @@ const key = import.meta.env.VITE_SUPABASE_KEY as string
 
 export const supabase = createClient(url, key)
 
-export type LocalRef = { codigo: string; vazio: boolean }
+export type LocalRef = {
+  codigo: string
+  vazio: boolean
+  locacao_id?: string
+  vazio_desde?: string | null
+}
 
 export type Item = {
   id: string
