@@ -55,7 +55,7 @@ export default function Mapa() {
     for (const [nome, ls] of grupos) {
       ls.sort((a, b) => a.codigo.localeCompare(b.codigo))
       const n = ls.length
-      const colunas = Math.max(1, Math.min(6, Math.ceil(Math.sqrt(n))))
+      const colunas = Math.max(1, Math.min(4, n))
       const linhas = Math.max(1, Math.ceil(n / colunas))
       let pr = prs.find(p => p.nome === nome)
       if (!pr) {
