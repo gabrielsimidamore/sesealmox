@@ -8,12 +8,14 @@ import Admin from './components/Admin'
 import Relatorios from './components/Relatorios'
 import Dashboard from './components/Dashboard'
 import Inventario from './components/Inventario'
+import Mapa from './components/Mapa'
 
-type Tela = 'busca' | 'dashboard' | 'inventario' | 'admin' | 'relatorios'
+type Tela = 'busca' | 'dashboard' | 'mapa' | 'inventario' | 'admin' | 'relatorios'
 
 const navItens: { id: Tela; icone: string; label: string }[] = [
   { id: 'busca', icone: '🔍', label: 'Buscar' },
   { id: 'dashboard', icone: '📊', label: 'Dashboard' },
+  { id: 'mapa', icone: '🗺️', label: 'Mapa 3D' },
   { id: 'inventario', icone: '✅', label: 'Inventário' },
   { id: 'admin', icone: '🛠️', label: 'Cadastro' },
   { id: 'relatorios', icone: '📋', label: 'Relatórios' },
@@ -90,6 +92,7 @@ export default function App() {
           <div className="fade-in" key={tela}>
             {tela === 'busca' && <Busca onAbrir={(it) => setItemAberto(it)} />}
             {tela === 'dashboard' && <Dashboard />}
+            {tela === 'mapa' && <Mapa />}
             {tela === 'inventario' && <Inventario />}
             {tela === 'admin' && <Admin />}
             {tela === 'relatorios' && <Relatorios />}

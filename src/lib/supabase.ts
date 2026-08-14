@@ -33,3 +33,13 @@ export type Locacao = {
   codigo: string
   descricao: string | null
 }
+
+export type Prateleira = {
+  id: string
+  nome: string
+  pos_x: number
+  pos_z: number
+  rotacao: number
+  linhas: number
+  colunas: number
+}

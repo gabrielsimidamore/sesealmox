@@ -254,6 +254,32 @@ button.linha:hover, .linha:hover { transform: translateY(-1px); box-shadow: var(
 .barra-fill { height: 100%; background: var(--azul); border-radius: 20px; transition: width .4s ease; }
 .barra-val { text-align: right; font-weight: 700; font-size: 14px; }
 
+/* ===== Mapa 3D ===== */
+.board { position: relative; min-height: 62vh; background: var(--card); border: 1px solid var(--borda); border-radius: 16px; margin-top: 8px; overflow: hidden; background-image: radial-gradient(var(--borda) 1px, transparent 1px); background-size: 22px 22px; }
+.shelf-card { position: absolute; width: 190px; background: var(--surface); border: 1px solid var(--borda); border-radius: 12px; padding: 8px; box-shadow: var(--sombra); }
+.shelf-top { display: flex; align-items: center; gap: 6px; }
+.shelf-drag { cursor: grab; font-size: 16px; color: var(--muted); user-select: none; touch-action: none; padding: 2px 4px; }
+.shelf-nome { margin: 0; padding: 6px 8px; font-weight: 700; font-size: 14px; }
+.shelf-top .rm { background: var(--vazio-bg); color: var(--vazio-txt); border: 0; border-radius: 8px; width: 28px; height: 30px; flex: 0 0 28px; }
+.shelf-dims { display: flex; gap: 6px; margin: 6px 0; }
+.shelf-dims label { flex: 1; font-size: 11px; color: var(--muted); display: flex; flex-direction: column; gap: 2px; }
+.shelf-dims input { margin: 0; padding: 6px; text-align: center; font-size: 13px; }
+.shelf-mini { display: grid; gap: 3px; margin: 6px 0; }
+.mini { aspect-ratio: 1; border-radius: 3px; }
+.mini.ok-slot { background: #22a559; }
+.mini.red-slot { background: #d64545; }
+.mini.vazio-slot { background: var(--chip); border: 1px solid var(--borda); }
+.shelf-card .secundario { width: 100%; padding: 8px; font-size: 13px; }
+
+.foco { display: grid; grid-template-columns: 1fr 320px; gap: 14px; }
+.foco-3d { height: 62vh; background: linear-gradient(180deg, var(--hover), var(--card)); border: 1px solid var(--borda); border-radius: 16px; overflow: hidden; }
+.foco-info { display: flex; flex-direction: column; gap: 12px; }
+.gaveta-label { background: rgba(0,0,0,.6); color: #fff; font-size: 11px; font-weight: 700; padding: 1px 5px; border-radius: 4px; white-space: nowrap; pointer-events: none; }
+@media (max-width: 760px) {
+  .foco { grid-template-columns: 1fr; }
+  .foco-3d { height: 48vh; }
+}
+
 /* ===== Inventário (stub) ===== */
 .em-breve { text-align: center; padding: 34px 20px; }
 .em-breve-ic { font-size: 40px; }
