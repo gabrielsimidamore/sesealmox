@@ -64,8 +64,8 @@ function Forma({ o }: { o: Node3D }) {
   return <mesh position={[0, o.alt / 2, 0]}><boxGeometry args={[o.larg, o.alt, o.prof]} /><meshStandardMaterial color={corTipo(o.tipo)} /></mesh>
 }
 
-function No({ o, selecionado, gizmo, onSelect, onChange }: {
-  o: Node3D; selecionado: boolean; gizmo: 'translate' | 'rotate'
+function No({ o, selecionado, gizmo, orbitRef, onSelect, onChange }: {
+  o: Node3D; selecionado: boolean; gizmo: 'translate' | 'rotate'; orbitRef: React.MutableRefObject<any>
   onSelect: (id: string) => void; onChange: (id: string, t: { pos_x: number; pos_z: number; rot_y: number }) => void
 }) {
   const ref = useRef<THREE.Group>(null)
@@ -76,9 +76,16 @@ function No({ o, selecionado, gizmo, onSelect, onChange }: {
     </group>
   )
   if (!selecionado) return grupo
+  const rot = gizmo === 'rotate'
   return (
-    <TransformControls mode={gizmo} showY={false}
-      onMouseUp={() => { if (ref.current) onChange(o.id, { pos_x: ref.current.position.x / S, pos_z: ref.current.position.z / S, rot_y: ref.current.rotation.y }) }}>
+    <TransformControls
+      mode={gizmo} size={0.9}
+      showX={!rot} showZ={!rot} showY={rot}
+      onMouseDown={() => { if (orbitRef.current) orbitRef.current.enabled = false }}
+      onMouseUp={() => {
+        if (orbitRef.current) orbitRef.current.enabled = true
+        if (ref.current) onChange(o.id, { pos_x: ref.current.position.x / S, pos_z: ref.current.position.z / S, rot_y: ref.current.rotation.y })
+      }}>
       {grupo}
     </TransformControls>
   )
@@ -113,6 +120,7 @@ export default function Cena3D({ nodes, selId, modo, gizmo, onSelect, onChange }
   nodes: Node3D[]; selId: string | null; modo: 'editar' | 'andar'; gizmo: 'translate' | 'rotate'
   onSelect: (id: string | null) => void; onChange: (id: string, t: { pos_x: number; pos_z: number; rot_y: number }) => void
 }) {
+  const orbitRef = useRef<any>(null)
   return (
     <Canvas shadows camera={{ position: [6, 7, 12], fov: 50 }} onPointerMissed={() => onSelect(null)}>
       <ambientLight intensity={0.6} />
@@ -124,11 +132,11 @@ export default function Cena3D({ nodes, selId, modo, gizmo, onSelect, onChange }
       </mesh>
 
       {nodes.map(o => (
-        <No key={o.id} o={o} selecionado={modo === 'editar' && selId === o.id} gizmo={gizmo} onSelect={onSelect} onChange={onChange} />
+        <No key={o.id} o={o} selecionado={modo === 'editar' && selId === o.id} gizmo={gizmo} orbitRef={orbitRef} onSelect={onSelect} onChange={onChange} />
       ))}
 
       {modo === 'editar'
-        ? <OrbitControls makeDefault />
+        ? <OrbitControls ref={orbitRef} makeDefault enableDamping dampingFactor={0.12} />
         : <><PointerLockControls /><Andarilho /></>}
     </Canvas>
   )
