@@ -4,6 +4,10 @@ import type { Node3D } from './Cena3D'
 
 const Cena3D = lazy(() => import('./Cena3D'))
 
+const S = 0.02
+const GRID = 0.25 // encaixe na grade (metros)
+const snap = (mapUnits: number) => (Math.round((mapUnits * S) / GRID) * GRID) / S
+
 type Objeto = {
   id: string; tipo: string; nome: string | null
   pos_x: number; pos_z: number; rot_y: number; larg: number; prof: number; alt: number
@@ -28,6 +32,7 @@ export default function Editor3D() {
   const [selId, setSelId] = useState<string | null>(null)
   const [modo, setModo] = useState<'editar' | 'andar'>('editar')
   const [gizmo, setGizmo] = useState<'translate' | 'rotate'>('translate')
+  const [colocando, setColocando] = useState<string | null>(null)
 
   async function carregar() {
     const [p, o] = await Promise.all([
@@ -45,16 +50,31 @@ export default function Editor3D() {
   ]
   const sel = nodes.find(n => n.id === selId) || null
 
-  async function adicionar(tipo: string) {
-    const off = (prats.length + objs.length) * 12
+  async function criarEm(tipo: string, x: number, z: number) {
+    const px = snap(x), pz = snap(z)
     if (tipo === 'prateleira') {
-      const { data } = await supabase.from('prateleiras').insert({ nome: 'Prateleira', linhas: 3, colunas: 4, pos_x: 200 + off, pos_z: 200 }).select().single()
+      const { data } = await supabase.from('prateleiras').insert({ nome: 'Prateleira', linhas: 3, colunas: 4, pos_x: px, pos_z: pz }).select().single()
       await carregar(); if (data) setSelId((data as any).id)
     } else {
       const d = DEFAULTS[tipo]
-      const { data } = await supabase.from('objetos').insert({ tipo, nome: d.nome, larg: d.larg, prof: d.prof, alt: d.alt, pos_x: 200 + off, pos_z: 260 }).select().single()
+      const { data } = await supabase.from('objetos').insert({ tipo, nome: d.nome, larg: d.larg, prof: d.prof, alt: d.alt, pos_x: px, pos_z: pz }).select().single()
       await carregar(); if (data) setSelId((data as any).id)
     }
+    setColocando(null)
+  }
+
+  async function girar90() {
+    if (!sel) return
+    const nr = (sel.rot_y + Math.PI / 2) % (Math.PI * 2)
+    if (sel.kind === 'prat') await editarPrat(sel.id, { rotacao: nr })
+    else await editarObj(sel.id, { rot_y: nr })
+  }
+
+  async function setPos(campo: 'pos_x' | 'pos_z', metros: number) {
+    if (!sel) return
+    const mapUnits = metros / S
+    if (sel.kind === 'prat') await editarPrat(sel.id, { [campo]: mapUnits } as any)
+    else await editarObj(sel.id, { [campo]: mapUnits } as any)
   }
 
   async function onChange(id: string, t: { pos_x: number; pos_z: number; rot_y: number }) {
@@ -95,8 +115,16 @@ export default function Editor3D() {
       <div className="foco">
         <div className="foco-3d">
           <Suspense fallback={<div className="muted pad">Carregando 3D…</div>}>
-            <Cena3D nodes={nodes} selId={selId} modo={modo} gizmo={gizmo} onSelect={setSelId} onChange={onChange} />
+            <Cena3D nodes={nodes} selId={selId} modo={modo} gizmo={gizmo}
+              colocando={colocando} onColocar={(x, z) => { if (colocando) criarEm(colocando, x, z) }}
+              onSelect={setSelId} onChange={onChange} />
           </Suspense>
+          {colocando && (
+            <div className="colocar-banner">
+              Clique no chão para posicionar <b>{colocando.replace('_', '-')}</b>
+              <button className="secundario" onClick={() => setColocando(null)}>Cancelar</button>
+            </div>
+          )}
         </div>
 
         <aside className="foco-info">
@@ -110,7 +138,7 @@ export default function Editor3D() {
               <div className="card">
                 <div className="secao-rot" style={{ marginTop: 0 }}>Adicionar</div>
                 <div className="add-grid">
-                  {TIPOS.map(x => <button key={x.t} className="secundario" onClick={() => adicionar(x.t)}>{x.l}</button>)}
+                  {TIPOS.map(x => <button key={x.t} className={`secundario${colocando === x.t ? ' on' : ''}`} onClick={() => setColocando(x.t)}>{x.l}</button>)}
                 </div>
               </div>
 
@@ -142,6 +170,12 @@ export default function Editor3D() {
                         </div>
                       </>
                     )}
+                    <div className="secao-rot">Posição exata</div>
+                    <div className="dims3">
+                      <label>X (m)<input type="number" step="0.25" value={+(sel.pos_x * S).toFixed(2)} onChange={e => setPos('pos_x', Number(e.target.value))} /></label>
+                      <label>Z (m)<input type="number" step="0.25" value={+(sel.pos_z * S).toFixed(2)} onChange={e => setPos('pos_z', Number(e.target.value))} /></label>
+                      <label>&nbsp;<button className="secundario" onClick={girar90}>⟳ 90°</button></label>
+                    </div>
                     <button className="secundario add" onClick={excluir} style={{ color: 'var(--vazio-txt)' }}>🗑️ Excluir</button>
                   </>
                 )}

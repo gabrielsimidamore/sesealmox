@@ -283,6 +283,10 @@ button.linha:hover, .linha:hover { transform: translateY(-1px); box-shadow: var(
 .dims3 { display: flex; gap: 6px; }
 .dims3 label { flex: 1; font-size: 11px; color: var(--muted); display: flex; flex-direction: column; gap: 2px; }
 .dims3 input { margin: 0; padding: 6px; text-align: center; font-size: 13px; }
+.dims3 .secundario { width: 100%; padding: 6px; font-size: 13px; }
+.colocar-banner { position: absolute; top: 12px; left: 50%; transform: translateX(-50%); background: var(--azul); color: #fff; padding: 8px 14px; border-radius: 20px; font-size: 14px; font-weight: 600; display: flex; align-items: center; gap: 10px; box-shadow: var(--sombra); z-index: 5; }
+.colocar-banner .secundario { padding: 5px 10px; }
+.foco-3d { position: relative; }
 .gaveta-label { background: rgba(0,0,0,.6); color: #fff; font-size: 11px; font-weight: 700; padding: 1px 5px; border-radius: 4px; white-space: nowrap; pointer-events: none; }
 @media (max-width: 760px) {
   .foco { grid-template-columns: 1fr; }

@@ -80,6 +80,7 @@ function No({ o, selecionado, gizmo, orbitRef, onSelect, onChange }: {
   return (
     <TransformControls
       mode={gizmo} size={0.9}
+      translationSnap={0.25} rotationSnap={Math.PI / 12}
       showX={!rot} showZ={!rot} showY={rot}
       onMouseDown={() => { if (orbitRef.current) orbitRef.current.enabled = false }}
       onMouseUp={() => {
@@ -116,8 +117,9 @@ function Andarilho() {
   return null
 }
 
-export default function Cena3D({ nodes, selId, modo, gizmo, onSelect, onChange }: {
+export default function Cena3D({ nodes, selId, modo, gizmo, colocando, onColocar, onSelect, onChange }: {
   nodes: Node3D[]; selId: string | null; modo: 'editar' | 'andar'; gizmo: 'translate' | 'rotate'
+  colocando: string | null; onColocar: (x: number, z: number) => void
   onSelect: (id: string | null) => void; onChange: (id: string, t: { pos_x: number; pos_z: number; rot_y: number }) => void
 }) {
   const orbitRef = useRef<any>(null)
@@ -127,7 +129,8 @@ export default function Cena3D({ nodes, selId, modo, gizmo, onSelect, onChange }
       <directionalLight position={[8, 14, 6]} intensity={1} castShadow />
       <hemisphereLight args={['#ffffff', '#6b7280', 0.4]} />
       <Grid args={[60, 60]} cellColor="#9aa7b8" sectionColor="#6b7c93" infiniteGrid fadeDistance={45} position={[0, 0, 0]} />
-      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.01, 0]} receiveShadow>
+      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.01, 0]} receiveShadow
+        onClick={(e) => { if (colocando) { e.stopPropagation(); onColocar(e.point.x / S, e.point.z / S) } }}>
         <planeGeometry args={[80, 80]} /><meshStandardMaterial color="#e9eef5" />
       </mesh>
 
