@@ -1,39 +1,53 @@
 import { useEffect, useState } from 'react'
-import { supabase, type Item, type Locacao } from '../lib/supabase'
+import { supabase, type Item } from '../lib/supabase'
 
-const vazio = { codigo_m: '', nome: '', descricao: '', categoria: '', locacao_id: '' }
+const vazio = { codigo_m: '', nome: '', descricao: '', categoria: '' }
 
 export default function Admin() {
   const [itens, setItens] = useState<Item[]>([])
-  const [locacoes, setLocacoes] = useState<Locacao[]>([])
   const [form, setForm] = useState<any>(vazio)
+  const [endereco, setEndereco] = useState('')
   const [editId, setEditId] = useState<string | null>(null)
   const [foto, setFoto] = useState<File | null>(null)
   const [fotoAtual, setFotoAtual] = useState<string | null>(null)
   const [salvando, setSalvando] = useState(false)
   const [msg, setMsg] = useState('')
-  const [novaLoc, setNovaLoc] = useState({ codigo: '', descricao: '' })
-  const [novoEndereco, setNovoEndereco] = useState('')
 
   async function carregar() {
-    const { data: its } = await supabase.from('itens').select('*, locacoes(codigo)').order('created_at', { ascending: false })
+    const { data: its } = await supabase
+      .from('itens')
+      .select('*, locacoes(codigo)')
+      .order('created_at', { ascending: false })
     setItens((its || []).map((i: any) => ({ ...i, locacao_codigo: i.locacoes?.codigo })))
-    const { data: locs } = await supabase.from('locacoes').select('*').order('codigo')
-    setLocacoes(locs || [])
   }
   useEffect(() => { carregar() }, [])
 
   function limpar() {
-    setForm(vazio); setEditId(null); setFoto(null); setFotoAtual(null); setNovoEndereco('')
+    setForm(vazio); setEndereco(''); setEditId(null); setFoto(null); setFotoAtual(null)
   }
 
   function editar(i: Item) {
     setForm({
       codigo_m: i.codigo_m, nome: i.nome || '', descricao: i.descricao || '',
-      categoria: i.categoria || '', locacao_id: i.locacao_id || ''
+      categoria: i.categoria || '',
     })
-    setEditId(i.id); setFoto(null); setFotoAtual(i.foto_url || null); setNovoEndereco('')
+    setEndereco(i.locacao_codigo || '')
+    setEditId(i.id); setFoto(null); setFotoAtual(i.foto_url || null)
     window.scrollTo({ top: 0, behavior: 'smooth' })
+  }
+
+  // Resolve o texto do endereço para um locacao_id: reaproveita se já existir
+  // exatamente igual, senão cria um novo. Assim o item mostra o endereço tal como digitado.
+  async function resolverEndereco(): Promise<string | null> {
+    const end = endereco.trim()
+    if (!end) return null
+    const { data: achada } = await supabase
+      .from('locacoes').select('id').eq('codigo', end).maybeSingle()
+    if (achada) return achada.id
+    const { data: nova, error } = await supabase
+      .from('locacoes').insert({ codigo: end }).select('id').single()
+    if (error) throw error
+    return nova!.id
   }
 
   async function salvar() {
@@ -41,20 +55,7 @@ export default function Admin() {
     setSalvando(true); setMsg('')
     let foto_url = fotoAtual
     try {
-      let locacao_id: string | null = form.locacao_id || null
-      if (form.locacao_id === '__novo__') {
-        const cod = novoEndereco.trim()
-        if (!cod) { setMsg('Digite o novo endereço ou escolha um da lista.'); setSalvando(false); return }
-        const existente = locacoes.find(l => l.codigo.toLowerCase() === cod.toLowerCase())
-        if (existente) {
-          locacao_id = existente.id
-        } else {
-          const { data: novaL, error: locErr } = await supabase
-            .from('locacoes').insert({ codigo: cod }).select('id').single()
-          if (locErr) throw locErr
-          locacao_id = novaL!.id
-        }
-      }
+      const locacao_id = await resolverEndereco()
       if (foto) {
         const nome = `${Date.now()}_${foto.name.replace(/[^\w.\-]/g, '_')}`
         const { error: upErr } = await supabase.storage.from('fotos').upload(nome, foto, { upsert: true })
@@ -88,12 +89,6 @@ export default function Admin() {
     carregar()
   }
 
-  async function addLocacao() {
-    if (!novaLoc.codigo.trim()) return
-    await supabase.from('locacoes').insert({ codigo: novaLoc.codigo.trim(), descricao: novaLoc.descricao || null })
-    setNovaLoc({ codigo: '', descricao: '' }); carregar()
-  }
-
   return (
     <div className="admin">
       <div className="card">
@@ -102,19 +97,7 @@ export default function Admin() {
         <input placeholder="Nome" value={form.nome} onChange={e => setForm({ ...form, nome: e.target.value })} />
         <textarea placeholder="Descrição" value={form.descricao} onChange={e => setForm({ ...form, descricao: e.target.value })} />
         <input placeholder="Categoria" value={form.categoria} onChange={e => setForm({ ...form, categoria: e.target.value })} />
-        <select value={form.locacao_id} onChange={e => setForm({ ...form, locacao_id: e.target.value })}>
-          <option value="">— Endereço / Locação —</option>
-          {locacoes.map(l => <option key={l.id} value={l.id}>{l.codigo}{l.descricao ? ` — ${l.descricao}` : ''}</option>)}
-          <option value="__novo__">➕ Novo endereço…</option>
-        </select>
-        {form.locacao_id === '__novo__' && (
-          <input
-            placeholder="Digite o novo endereço (ex: 7B-3E1)"
-            value={novoEndereco}
-            onChange={e => setNovoEndereco(e.target.value.toUpperCase())}
-            autoFocus
-          />
-        )}
+        <input placeholder="Endereço (ex: 7B-3E1)" value={endereco} onChange={e => setEndereco(e.target.value)} />
 
         <label className="foto-btn">
           📷 {foto ? foto.name : (fotoAtual ? 'Trocar foto' : 'Tirar / escolher foto')}
@@ -132,16 +115,6 @@ export default function Admin() {
           </button>
           {editId && <button className="secundario" onClick={limpar}>Cancelar</button>}
         </div>
-      </div>
-
-      <div className="card">
-        <h3>Locações</h3>
-        <div className="row">
-          <input placeholder="Código (ex: A-01-02)" value={novaLoc.codigo} onChange={e => setNovaLoc({ ...novaLoc, codigo: e.target.value })} />
-          <input placeholder="Descrição" value={novaLoc.descricao} onChange={e => setNovaLoc({ ...novaLoc, descricao: e.target.value })} />
-          <button className="secundario" onClick={addLocacao}>+ Add</button>
-        </div>
-        <div className="chips">{locacoes.map(l => <span key={l.id} className="tag loc">{l.codigo}</span>)}</div>
       </div>
 
       <div className="card">
