@@ -298,7 +298,14 @@ button.linha:hover, .linha:hover { transform: translateY(-1px); box-shadow: var(
 .rk-wrap { display: grid; grid-template-columns: minmax(0, 1fr) 330px; gap: 16px; align-items: start; }
 .rk-col { min-width: 0; }
 
-.rk { display: flex; gap: 6px; background: linear-gradient(180deg, #1b2431, #0e131c); border: 1px solid #2a3547; border-radius: 14px; padding: 14px 10px; }
+.rk-stage { perspective: 1700px; perspective-origin: 62% 45%; }
+.rk {
+  display: flex; gap: 6px; background: linear-gradient(180deg, #1b2431, #0e131c);
+  border: 1px solid #2a3547; border-radius: 14px; padding: 14px 10px;
+  transform: rotateY(-11deg) rotateX(4deg); transform-style: preserve-3d;
+  box-shadow: 26px 22px 50px rgba(0,0,0,.35);
+  transition: transform .5s cubic-bezier(.22,.61,.36,1);
+}
 .rk-post { width: 14px; flex: 0 0 14px; border-radius: 4px; background: linear-gradient(90deg, #3d4a5e, #222c3a); box-shadow: inset -2px 0 4px rgba(0,0,0,.5); }
 .rk-body { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 10px; }
 
@@ -313,14 +320,21 @@ button.linha:hover, .linha:hover { transform: translateY(-1px); box-shadow: var(
   box-shadow: inset 0 2px 0 rgba(255,255,255,.07), inset 0 -8px 14px rgba(0,0,0,.45), 0 3px 6px rgba(0,0,0,.4);
   display: flex; align-items: center; justify-content: center;
   transform-style: preserve-3d; transform-origin: 50% 100%;
-  transition: transform .34s cubic-bezier(.34,.9,.4,1), box-shadow .3s, filter .2s;
+  transition: transform .42s cubic-bezier(.22,1.1,.36,1), box-shadow .35s, filter .25s;
 }
-.rk-drawer:hover { transform: translateZ(18px) translateY(-1px); filter: brightness(1.12); }
+.rk-drawer::after {
+  content: ''; position: absolute; inset: 4px 6px auto 6px; height: 34%;
+  border-radius: 5px 5px 2px 2px; background: linear-gradient(180deg, #0a0f16, #131b26);
+  box-shadow: inset 0 4px 8px rgba(0,0,0,.75); opacity: 0; transition: opacity .3s;
+  transform: translateZ(-1px);
+}
+.rk-drawer:hover { transform: translateZ(22px) translateY(-2px); filter: brightness(1.12); }
 .rk-drawer.aberta {
-  transform: translateZ(74px) translateY(6px) rotateX(7deg);
-  box-shadow: 0 22px 34px rgba(0,0,0,.6), inset 0 2px 0 rgba(255,255,255,.1);
-  outline: 2px solid #f0a04b; outline-offset: 1px; z-index: 3; filter: brightness(1.16);
+  transform: translateZ(96px) translateY(8px) rotateX(11deg);
+  box-shadow: 0 30px 46px rgba(0,0,0,.66), inset 0 2px 0 rgba(255,255,255,.12);
+  outline: 2px solid #f0a04b; outline-offset: 1px; z-index: 4; filter: brightness(1.18);
 }
+.rk-drawer.aberta::after { opacity: 1; }
 .rk-drawer.ghost { background: transparent; box-shadow: none; border: 1px dashed #2a3547; cursor: default; }
 .rk-drawer.ghost:hover { transform: none; filter: none; }
 
@@ -344,8 +358,17 @@ button.linha:hover, .linha:hover { transform: translateY(-1px); box-shadow: var(
 .rk-badge.st-verde { background: #35c46a; } .rk-badge.st-amarelo { background: #f2b32e; } .rk-badge.st-vermelho { background: #e0524d; color: #fff; }
 .rk-lista { display: flex; flex-direction: column; max-height: 60vh; overflow-y: auto; }
 .rk-seprot { font-size: 11px; text-transform: uppercase; letter-spacing: .4px; color: #f0a04b; font-weight: 700; margin: 10px 0 2px; }
-.rk-item { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 9px 2px; border-bottom: 1px solid var(--borda); }
-.rk-inome { font-size: 14px; font-weight: 600; }
+.rk-item {
+  display: flex; align-items: center; gap: 10px; width: 100%; text-align: left;
+  padding: 8px 4px; border: 0; border-bottom: 1px solid var(--borda); background: transparent;
+  color: var(--texto); border-radius: 8px; transition: background .15s;
+}
+.rk-item:hover { background: var(--hover); }
+.rk-thumb { width: 36px; height: 36px; flex: 0 0 36px; border-radius: 8px; overflow: hidden; background: var(--chip); display: grid; place-items: center; }
+.rk-thumb img { width: 100%; height: 100%; object-fit: cover; }
+.rk-semfoto { font-size: 16px; opacity: .5; }
+.rk-iinfo { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+.rk-inome { font-size: 14px; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .rk-isku { font-size: 12px; color: var(--muted); }
 .rk-iqtd { font-size: 19px; font-weight: 800; color: var(--azul); white-space: nowrap; }
 .rk-iqtd span { font-size: 11px; color: var(--muted); font-weight: 600; margin-left: 3px; }

@@ -1,7 +1,8 @@
 import { useEffect, useMemo, useState } from 'react'
-import { supabase } from '../lib/supabase'
+import { supabase, type Item } from '../lib/supabase'
+import ItemDetalhe from './ItemDetalhe'
 
-type ItemLinha = { codigo_m: string; nome: string; qtd: number }
+type ItemLinha = { item_id: string; codigo_m: string; nome: string; qtd: number; foto: string | null }
 type Comp = { comp: string; itens: ItemLinha[]; temItem: boolean }
 type Gaveta = { key: string; gaveta: string; col: number; row: string; comps: Comp[]; status: 'verde' | 'amarelo' | 'vermelho'; totalItens: number }
 type Shelf = { nome: string; cols: number[]; rows: string[]; mapa: Map<string, Gaveta> }
@@ -20,31 +21,49 @@ function colRow(gaveta: string): { col: number; row: string } {
 
 export default function Prateleiras() {
   const [locs, setLocs] = useState<{ id: string; codigo: string }[]>([])
-  const [ils, setIls] = useState<{ locacao_id: string; quantidade: number; codigo_m: string; nome: string }[]>([])
+  const [ils, setIls] = useState<ItemLinha[] & { locacao_id?: string }[]>([] as any)
   const [carregando, setCarregando] = useState(true)
   const [shelfSel, setShelfSel] = useState<string>('')
   const [gavetaSel, setGavetaSel] = useState<string | null>(null)
+  const [itemAberto, setItemAberto] = useState<Item | null>(null)
 
   useEffect(() => {
     (async () => {
       const [lc, il] = await Promise.all([
         supabase.from('locacoes').select('id, codigo'),
-        supabase.from('item_locacoes').select('locacao_id, quantidade, itens(codigo_m, nome)'),
+        supabase.from('item_locacoes').select('locacao_id, quantidade, item_id, itens(codigo_m, nome, fotos)'),
       ])
       setLocs((lc.data as any) || [])
       setIls(((il.data as any[]) || []).map(r => ({
-        locacao_id: r.locacao_id, quantidade: r.quantidade,
+        locacao_id: r.locacao_id, quantidade: r.quantidade, item_id: r.item_id,
         codigo_m: r.itens?.codigo_m || '—', nome: r.itens?.nome || '—',
-      })))
+        foto: (r.itens?.fotos && r.itens.fotos[0]) || null,
+      })) as any)
       setCarregando(false)
     })()
   }, [])
 
+  async function abrirItem(itemId: string) {
+    const { data } = await supabase
+      .from('itens')
+      .select('*, item_locacoes(vazio, quantidade, vazio_desde, locacao_id, locacoes(codigo))')
+      .eq('id', itemId).single()
+    if (!data) return
+    const d = data as any
+    setItemAberto({
+      ...d,
+      locais: (d.item_locacoes || []).map((il: any) => ({
+        codigo: il.locacoes?.codigo || '—', vazio: il.vazio, quantidade: il.quantidade,
+        locacao_id: il.locacao_id, vazio_desde: il.vazio_desde,
+      })),
+    })
+  }
+
   const shelves = useMemo(() => {
     const itensPorLoc = new Map<string, ItemLinha[]>()
-    for (const r of ils) {
+    for (const r of ils as any[]) {
       if (!itensPorLoc.has(r.locacao_id)) itensPorLoc.set(r.locacao_id, [])
-      itensPorLoc.get(r.locacao_id)!.push({ codigo_m: r.codigo_m, nome: r.nome, qtd: r.quantidade })
+      itensPorLoc.get(r.locacao_id)!.push({ item_id: r.item_id, codigo_m: r.codigo_m, nome: r.nome, qtd: r.quantidade, foto: r.foto })
     }
     const mapaShelf = new Map<string, Shelf>()
     const gavetaComps = new Map<string, Map<string, Comp>>()
@@ -96,8 +115,10 @@ export default function Prateleiras() {
         </div>
       </div>
 
+      {itemAberto && <ItemDetalhe item={itemAberto} onFechar={() => setItemAberto(null)} />}
+
       <div className="rk-wrap">
-        <div className="rk-col">
+        <div className="rk-col rk-stage">
           <div className="rk">
             <div className="rk-post left" />
             <div className="rk-body">
@@ -163,10 +184,16 @@ export default function Prateleiras() {
                       {comItem.length === 0
                         ? <div className="muted" style={{ fontSize: 13, padding: '8px 0' }}>Vazia</div>
                         : comItem.map((it, j) => (
-                          <div key={j} className="rk-item">
-                            <div><div className="rk-inome">{it.nome}</div><div className="rk-isku">{it.codigo_m}</div></div>
-                            <div className="rk-iqtd">{it.qtd}<span>un</span></div>
-                          </div>
+                          <button key={j} className="rk-item" onClick={() => abrirItem(it.item_id)}>
+                            <span className="rk-thumb">
+                              {it.foto ? <img src={it.foto} alt="" /> : <span className="rk-semfoto">📦</span>}
+                            </span>
+                            <span className="rk-iinfo">
+                              <span className="rk-inome">{it.nome}</span>
+                              <span className="rk-isku">{it.codigo_m}</span>
+                            </span>
+                            <span className="rk-iqtd">{it.qtd}<span>un</span></span>
+                          </button>
                         ))}
                     </div>
                   )
