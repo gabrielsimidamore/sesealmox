@@ -9,9 +9,8 @@ import Relatorios from './components/Relatorios'
 import Dashboard from './components/Dashboard'
 import Inventario from './components/Inventario'
 import Prateleiras from './components/Prateleiras'
-import Recuperar from './components/Recuperar'
 
-type Tela = 'busca' | 'dashboard' | 'mapa' | 'inventario' | 'admin' | 'relatorios' | 'recuperar'
+type Tela = 'busca' | 'dashboard' | 'mapa' | 'inventario' | 'admin' | 'relatorios'
 
 const navItens: { id: Tela; icone: string; label: string }[] = [
   { id: 'busca', icone: '🔍', label: 'Buscar' },
@@ -19,7 +18,6 @@ const navItens: { id: Tela; icone: string; label: string }[] = [
   { id: 'mapa', icone: '🗺️', label: 'Prateleiras 3D' },
   { id: 'inventario', icone: '✅', label: 'Inventário' },
   { id: 'admin', icone: '🛠️', label: 'Cadastro' },
-  { id: 'recuperar', icone: '♻️', label: 'Recadastro' },
   { id: 'relatorios', icone: '📋', label: 'Relatórios' },
 ]
 
@@ -97,7 +95,6 @@ export default function App() {
             {tela === 'mapa' && <Prateleiras />}
             {tela === 'inventario' && <Inventario />}
             {tela === 'admin' && <Admin />}
-            {tela === 'recuperar' && <Recuperar />}
             {tela === 'relatorios' && <Relatorios />}
           </div>
         </main>
