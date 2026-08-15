@@ -8,7 +8,7 @@ import Admin from './components/Admin'
 import Relatorios from './components/Relatorios'
 import Dashboard from './components/Dashboard'
 import Inventario from './components/Inventario'
-import Mapa from './components/Mapa'
+import Prateleiras from './components/Prateleiras'
 
 type Tela = 'busca' | 'dashboard' | 'mapa' | 'inventario' | 'admin' | 'relatorios'
 
@@ -92,7 +92,7 @@ export default function App() {
           <div className="fade-in" key={tela}>
             {tela === 'busca' && <Busca onAbrir={(it) => setItemAberto(it)} />}
             {tela === 'dashboard' && <Dashboard />}
-            {tela === 'mapa' && <Mapa />}
+            {tela === 'mapa' && <Prateleiras />}
             {tela === 'inventario' && <Inventario />}
             {tela === 'admin' && <Admin />}
             {tela === 'relatorios' && <Relatorios />}
