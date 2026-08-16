@@ -118,14 +118,15 @@ export default function Prateleiras() {
       {itemAberto && <ItemDetalhe item={itemAberto} onFechar={() => setItemAberto(null)} />}
 
       <div className="rk-wrap">
-        <div className="rk-col rk-stage">
+        <div className="rk-col">
+          <div className="rk-scroll">
           <div className="rk">
             <div className="rk-post left" />
             <div className="rk-body">
               {shelf.rows.map(row => (
                 <div className="rk-level" key={row}>
                   <div className="rk-tag">{row}</div>
-                  <div className="rk-drawers" style={{ gridTemplateColumns: `repeat(${shelf.cols.length}, 1fr)` }}>
+                  <div className="rk-drawers" style={{ gridTemplateColumns: `repeat(${shelf.cols.length}, minmax(64px, 1fr))` }}>
                     {shelf.cols.map(col => {
                       const g = shelf.mapa.get(`${col}${row}`)
                       if (!g) return <div key={col} className="rk-drawer ghost" />
@@ -148,6 +149,7 @@ export default function Prateleiras() {
               ))}
             </div>
             <div className="rk-post right" />
+          </div>
           </div>
 
           <div className="rk-legenda">
