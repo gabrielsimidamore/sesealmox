@@ -124,7 +124,7 @@ export default function Prateleiras() {
           <div className="rk">
             <div className="rk-post left" />
             <div className="rk-body">
-              {shelf.linhas.map(linha => (
+              {[...shelf.linhas].reverse().map(linha => (
                 <div className="rk-level" key={linha}>
                   <div className="rk-tag">{linha}</div>
                   <div className="rk-drawers" style={{ gridTemplateColumns: `repeat(${shelf.colunas.length}, minmax(0, 1fr))` }}>
