@@ -4,8 +4,8 @@ import ItemDetalhe from './ItemDetalhe'
 
 type ItemLinha = { item_id: string; codigo_m: string; nome: string; qtd: number; foto: string | null }
 type Comp = { comp: string; itens: ItemLinha[]; temItem: boolean }
-type Gaveta = { key: string; gaveta: string; col: number; row: string; comps: Comp[]; status: 'verde' | 'amarelo' | 'vermelho'; totalItens: number }
-type Shelf = { nome: string; cols: number[]; rows: string[]; mapa: Map<string, Gaveta> }
+type Gaveta = { key: string; gaveta: string; linha: string; coluna: string; comps: Comp[]; status: 'verde' | 'amarelo' | 'vermelho'; totalItens: number }
+type Shelf = { nome: string; linhas: string[]; colunas: string[]; mapa: Map<string, Gaveta> }
 
 function partes(codigo: string) {
   const i = codigo.indexOf('-')
@@ -14,9 +14,10 @@ function partes(codigo: string) {
   const m = rest.match(/^(.*[A-Za-z])(\d*)$/)
   return { shelf, gaveta: m ? m[1] : rest, comp: m ? (m[2] || '') : '' }
 }
-function colRow(gaveta: string): { col: number; row: string } {
+// número = linha (1A/1B/1C = mesma linha); letra = coluna (posição na linha)
+function eixo(gaveta: string): { linha: string; coluna: string } {
   const m = gaveta.match(/^(\d+)([A-Za-z]+)$/)
-  return m ? { col: Number(m[1]), row: m[2] } : { col: 0, row: gaveta }
+  return m ? { linha: m[1], coluna: m[2] } : { linha: gaveta, coluna: '' }
 }
 
 export default function Prateleiras() {
@@ -82,13 +83,13 @@ export default function Prateleiras() {
       const comStock = comps.filter(c => c.temItem).length
       const status: Gaveta['status'] = comStock === 0 ? 'vermelho' : comStock === comps.length ? 'verde' : 'amarelo'
       const totalItens = comps.reduce((s, c) => s + c.itens.filter(x => x.qtd > 0).length, 0)
-      const { col, row } = colRow(gaveta)
-      if (!mapaShelf.has(shelf)) mapaShelf.set(shelf, { nome: shelf, cols: [], rows: [], mapa: new Map() })
-      mapaShelf.get(shelf)!.mapa.set(`${col}${row}`, { key: `${col}${row}`, gaveta, col, row, comps, status, totalItens })
+      const { linha, coluna } = eixo(gaveta)
+      if (!mapaShelf.has(shelf)) mapaShelf.set(shelf, { nome: shelf, linhas: [], colunas: [], mapa: new Map() })
+      mapaShelf.get(shelf)!.mapa.set(`${linha}|${coluna}`, { key: `${linha}|${coluna}`, gaveta, linha, coluna, comps, status, totalItens })
     }
     for (const sh of mapaShelf.values()) {
-      sh.cols = [...new Set([...sh.mapa.values()].map(g => g.col))].sort((a, b) => a - b)
-      sh.rows = [...new Set([...sh.mapa.values()].map(g => g.row))].sort()
+      sh.linhas = [...new Set([...sh.mapa.values()].map(g => g.linha))].sort((a, b) => (Number(a) - Number(b)) || a.localeCompare(b))
+      sh.colunas = [...new Set([...sh.mapa.values()].map(g => g.coluna))].sort()
     }
     return [...mapaShelf.values()].sort((a, b) => a.nome.localeCompare(b.nome))
   }, [locs, ils])
@@ -123,16 +124,16 @@ export default function Prateleiras() {
           <div className="rk">
             <div className="rk-post left" />
             <div className="rk-body">
-              {shelf.rows.map(row => (
-                <div className="rk-level" key={row}>
-                  <div className="rk-tag">{row}</div>
-                  <div className="rk-drawers" style={{ gridTemplateColumns: `repeat(${shelf.cols.length}, minmax(64px, 1fr))` }}>
-                    {shelf.cols.map(col => {
-                      const g = shelf.mapa.get(`${col}${row}`)
-                      if (!g) return <div key={col} className="rk-drawer ghost" />
+              {shelf.linhas.map(linha => (
+                <div className="rk-level" key={linha}>
+                  <div className="rk-tag">{linha}</div>
+                  <div className="rk-drawers" style={{ gridTemplateColumns: `repeat(${shelf.colunas.length}, minmax(0, 1fr))` }}>
+                    {shelf.colunas.map(coluna => {
+                      const g = shelf.mapa.get(`${linha}|${coluna}`)
+                      if (!g) return <div key={coluna} className="rk-drawer ghost" />
                       const aberta = gavetaSel === g.key
                       return (
-                        <button key={col} className={`rk-drawer st-${g.status}${aberta ? ' aberta' : ''}`}
+                        <button key={coluna} className={`rk-drawer st-${g.status}${aberta ? ' aberta' : ''}`}
                           onClick={() => setGavetaSel(aberta ? null : g.key)}>
                           <span className="rk-handle" />
                           <span className="rk-face">

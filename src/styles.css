@@ -305,9 +305,9 @@ button.linha:hover, .linha:hover { transform: translateY(-1px); box-shadow: var(
 .rk-wrap { display: grid; grid-template-columns: minmax(0, 1fr) 330px; gap: 16px; align-items: start; }
 .rk-col { min-width: 0; }
 
-.rk-scroll { overflow-x: auto; overflow-y: hidden; padding-bottom: 4px; -webkit-overflow-scrolling: touch; }
+.rk-scroll { min-width: 0; }
 .rk {
-  display: flex; gap: 6px; min-width: 520px; background: linear-gradient(180deg, #1b2431, #0e131c);
+  display: flex; gap: 6px; min-width: 0; background: linear-gradient(180deg, #1b2431, #0e131c);
   border: 1px solid #2a3547; border-radius: 14px; padding: 14px 10px;
   box-shadow: 0 18px 40px rgba(0,0,0,.3);
 }
@@ -343,7 +343,7 @@ button.linha:hover, .linha:hover { transform: translateY(-1px); box-shadow: var(
 
 .rk-handle { position: absolute; top: 7px; left: 50%; transform: translateX(-50%); width: 34%; height: 5px; border-radius: 3px; background: linear-gradient(180deg, #1a222e, #0d131c); box-shadow: inset 0 1px 0 rgba(255,255,255,.08); }
 .rk-face { display: flex; align-items: center; gap: 7px; margin-top: 6px; }
-.rk-code { color: #eaf0f8; font-weight: 800; font-size: clamp(11px, 1.15vw, 16px); letter-spacing: .5px; }
+.rk-code { color: #eaf0f8; font-weight: 800; font-size: clamp(10px, 1.15vw, 16px); letter-spacing: .5px; max-width: 100%; overflow: hidden; text-overflow: ellipsis; }
 .rk-dot { width: 9px; height: 9px; border-radius: 50%; flex: 0 0 9px; display: inline-block; }
 .st-verde .rk-dot, .rk-dot.st-verde { background: #35c46a; box-shadow: 0 0 7px rgba(53,196,106,.7); }
 .st-amarelo .rk-dot, .rk-dot.st-amarelo { background: #f2b32e; box-shadow: 0 0 7px rgba(242,179,46,.6); }
@@ -379,9 +379,23 @@ button.linha:hover, .linha:hover { transform: translateY(-1px); box-shadow: var(
 @media (max-width: 900px) {
   .rk-wrap { grid-template-columns: 1fr; }
   .rk-painel { position: static; }
-  .rk-drawer { min-height: 52px; }
-  .rk-code { font-size: 14px; }
-  .rk-drawer.aberta { transform: translateY(-6px) scale(1.03); }
+}
+/* celular: prateleira inteira cabe na tela, sem arrastar */
+@media (max-width: 560px) {
+  .rk { padding: 8px 5px; gap: 3px; }
+  .rk-post { width: 7px; flex-basis: 7px; }
+  .rk-body { gap: 6px; }
+  .rk-level { gap: 5px; padding-bottom: 6px; }
+  .rk-tag { width: 16px; flex-basis: 16px; font-size: 11px; border-radius: 4px; }
+  .rk-drawers { gap: 3px; }
+  .rk-drawer { min-height: 32px; border-radius: 5px; }
+  .rk-handle { display: none; }
+  .rk-face { margin-top: 0; gap: 3px; flex-direction: column; }
+  .rk-code { font-size: 10px; letter-spacing: 0; }
+  .rk-dot { width: 6px; height: 6px; flex-basis: 6px; }
+  .rk-sep { font-size: 8px; top: 1px; right: 2px; padding: 0 3px; }
+  .rk-drawer.aberta { transform: translateY(-3px) scale(1.02); }
+  .rk-board { left: 22px; height: 5px; }
 }
 @media (prefers-reduced-motion: reduce) { .rk-drawer { transition: none; } }
 
