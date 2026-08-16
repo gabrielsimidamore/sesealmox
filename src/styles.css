@@ -397,7 +397,7 @@ button.linha:hover, .linha:hover { transform: translateY(-1px); box-shadow: var(
   .rk-code { font-size: 10px; letter-spacing: 0; }
   .rk-dot { width: 6px; height: 6px; flex-basis: 6px; }
   .rk-sep { font-size: 8px; top: 1px; right: 2px; padding: 0 3px; }
-  .rk-drawer.aberta { transform: translateY(-3px) scale(1.02); }
+  .rk-drawer.aberta { transform: none; }
   .rk-board { left: 22px; height: 5px; }
 }
 @media (prefers-reduced-motion: reduce) { .rk-drawer { transition: none; } }

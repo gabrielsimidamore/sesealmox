@@ -12,6 +12,22 @@
           document.documentElement.setAttribute('data-theme', t === 'escuro' ? 'dark' : 'light')
         } catch (e) {}
       })()
+
+      // Bloqueia zoom por pinça (iOS ignora user-scalable=no)
+      ['gesturestart', 'gesturechange', 'gestureend'].forEach(function (ev) {
+        document.addEventListener(ev, function (e) { e.preventDefault() }, { passive: false })
+      })
+      // Bloqueia zoom por toque-duplo nas gavetas (só nelas; não afeta +/- nem itens)
+      var _lt = 0, _lx = 0, _ly = 0
+      document.addEventListener('touchend', function (e) {
+        var tt = e.changedTouches && e.changedTouches[0]; if (!tt) return
+        var now = Date.now()
+        var naGaveta = e.target && e.target.closest && e.target.closest('.rk-drawer')
+        if (naGaveta && now - _lt < 450 && Math.abs(tt.clientX - _lx) < 45 && Math.abs(tt.clientY - _ly) < 45) {
+          e.preventDefault()
+        }
+        _lt = now; _lx = tt.clientX; _ly = tt.clientY
+      }, { passive: false })
     </script>
   </head>
   <body>
