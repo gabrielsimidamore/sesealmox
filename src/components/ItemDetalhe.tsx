@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { createPortal } from 'react-dom'
 import { supabase, type Item, type LocalRef } from '../lib/supabase'
 import { tempoVazia } from '../lib/datas'
 import { registrarHistorico } from '../lib/historico'
@@ -33,10 +34,10 @@ export default function ItemDetalhe({ item, onFechar }: { item: Item; onFechar: 
   }
 
   useEffect(() => {
-    function onKey(e: KeyboardEvent) { if (e.key === 'Escape') fechar() }
+    function onKey(e: KeyboardEvent) { if (e.key === 'Escape') { if (zoom) setZoom(false); else fechar() } }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
-  }, [])
+  }, [zoom])
 
   async function mudarQtd(l: LocalRef, novo: number) {
     if (!l.locacao_id || novo < 0) return
@@ -133,10 +134,19 @@ export default function ItemDetalhe({ item, onFechar }: { item: Item; onFechar: 
         </div>
       </aside>
 
-      {zoom && (
-        <div className="lightbox" onClick={(e) => { e.stopPropagation(); setZoom(false) }}>
-          <img src={fotos[sel]} alt="" />
-        </div>
+      {zoom && createPortal(
+        <div className="lightbox" onClick={() => setZoom(false)}>
+          <button className="lb-fechar" onClick={(e) => { e.stopPropagation(); setZoom(false) }} aria-label="Fechar">✕</button>
+          {fotos.length > 1 && (
+            <button className="lb-nav prev" onClick={(e) => { e.stopPropagation(); setSel((sel - 1 + fotos.length) % fotos.length) }} aria-label="Anterior">‹</button>
+          )}
+          <img src={fotos[sel]} alt="" onClick={(e) => e.stopPropagation()} />
+          {fotos.length > 1 && (
+            <button className="lb-nav next" onClick={(e) => { e.stopPropagation(); setSel((sel + 1) % fotos.length) }} aria-label="Próxima">›</button>
+          )}
+          {fotos.length > 1 && <div className="lb-cont">{sel + 1} / {fotos.length}</div>}
+        </div>,
+        document.body
       )}
     </div>
   )
