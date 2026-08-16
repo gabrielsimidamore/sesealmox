@@ -16,6 +16,7 @@ export default function ItemDetalhe({ item, onFechar }: { item: Item; onFechar: 
   const [locais, setLocais] = useState<LocalRef[]>(item.locais || [])
   const [salvandoLoc, setSalvandoLoc] = useState<string | null>(null)
   const [hist, setHist] = useState<Hist[]>([])
+  const [videoUrl, setVideoUrl] = useState<string | null>(item.video_url ?? null)
 
   useEffect(() => {
     const r = requestAnimationFrame(() => setVisivel(true))
@@ -26,6 +27,10 @@ export default function ItemDetalhe({ item, onFechar }: { item: Item; onFechar: 
     supabase.from('historico').select('*').eq('item_id', item.id)
       .order('created_at', { ascending: false }).limit(20)
       .then(({ data }) => setHist((data as Hist[]) || []))
+    if (item.video_url === undefined) {
+      supabase.from('itens').select('video_url').eq('id', item.id).single()
+        .then(({ data }) => setVideoUrl((data as any)?.video_url ?? null))
+    }
   }, [item.id])
 
   function fechar() {
@@ -114,6 +119,13 @@ export default function ItemDetalhe({ item, onFechar }: { item: Item; onFechar: 
             )}
 
             {item.descricao && <div className="desc"><span className="rot">Descrição</span>{item.descricao}</div>}
+
+            {videoUrl && (
+              <div>
+                <span className="rot">Vídeo</span>
+                <a className="video-link" href={videoUrl} target="_blank" rel="noopener noreferrer">▶ Assistir vídeo</a>
+              </div>
+            )}
 
             <div>
               <span className="rot">Histórico</span>

@@ -20,6 +20,7 @@ export type Item = {
   descricao: string | null
   categoria: string | null
   fotos?: string[] | null
+  video_url?: string | null
   locais?: LocalRef[] | null
   // legado / auxiliares
   foto_url?: string | null

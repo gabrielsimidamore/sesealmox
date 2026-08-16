@@ -3,7 +3,7 @@ import { supabase, type Item } from '../lib/supabase'
 import { comprimirImagem } from '../lib/imagem'
 import { registrarHistorico } from '../lib/historico'
 
-const vazio = { codigo_m: '', nome: '', descricao: '', categoria: '' }
+const vazio = { codigo_m: '', nome: '', descricao: '', categoria: '', video_url: '' }
 type LocEdit = { codigo: string; quantidade: number }
 const locNova: LocEdit = { codigo: '', quantidade: 1 }
 
@@ -40,7 +40,7 @@ export default function Admin() {
   }
 
   function editar(i: Item) {
-    setForm({ codigo_m: i.codigo_m, nome: i.nome || '', descricao: i.descricao || '', categoria: i.categoria || '' })
+    setForm({ codigo_m: i.codigo_m, nome: i.nome || '', descricao: i.descricao || '', categoria: i.categoria || '', video_url: i.video_url || '' })
     setLocs(i.locais && i.locais.length > 0
       ? i.locais.map(l => ({ codigo: l.codigo, quantidade: l.quantidade ?? 0 }))
       : [{ ...locNova }])
@@ -89,6 +89,7 @@ export default function Admin() {
         nome: form.nome || null,
         descricao: form.descricao || null,
         categoria: form.categoria || null,
+        video_url: form.video_url?.trim() || null,
         fotos,
         foto_url: fotos[0] ?? null,
         locacao_id: locRows[0]?.locacao_id ?? null,
@@ -140,6 +141,7 @@ export default function Admin() {
         <textarea placeholder="Descrição" value={form.descricao} onChange={e => setForm({ ...form, descricao: e.target.value })} />
         <input list="cats" placeholder="Categoria" value={form.categoria} onChange={e => setForm({ ...form, categoria: e.target.value })} />
         <datalist id="cats">{categorias.map(c => <option key={c} value={c} />)}</datalist>
+        <input placeholder="Link de vídeo (YouTube, etc.) — opcional" value={form.video_url} onChange={e => setForm({ ...form, video_url: e.target.value })} />
 
         <div className="secao-rot">Locações e quantidade</div>
         {locs.map((l, idx) => (
