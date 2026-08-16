@@ -380,7 +380,7 @@ button.linha:hover, .linha:hover { transform: translateY(-1px); box-shadow: var(
 .rk-iqtd span { font-size: 11px; color: var(--muted); font-weight: 600; margin-left: 3px; }
 
 @media (max-width: 900px) {
-  .rk-wrap { grid-template-columns: 1fr; }
+  .rk-wrap { grid-template-columns: minmax(0, 1fr); }
   .rk-painel { position: static; }
 }
 /* celular: prateleira inteira cabe na tela, sem arrastar */
